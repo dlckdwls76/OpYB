@@ -1,6 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "OpYBGameMode.h"
+#include "Game/OpYBGameMode.h"
 
 AOpYBGameMode::AOpYBGameMode()
 {
