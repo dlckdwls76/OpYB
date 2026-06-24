@@ -1,0 +1,92 @@
+{
+  "systemId": "system:MagneticFieldShrink",
+  "contexts": [
+    {
+      "contextId": "ctx:MagneticField.Initialize",
+      "entryName": "MagneticField.Initialize",
+      "sourceFingerprint": "mf-init-v1",
+      "title": "초기 자기장 및 에이전트 생성",
+      "summary": "게임 시작 시 맵 전체 크기에 비례하는 초기 안전구역을 설정하고 플레이어들을 스폰합니다.",
+      "beforeState": "빈 맵 영역",
+      "inputs": ["mapSize", "agentCount"],
+      "executionNarrative": [
+        "지정된 수만큼 에이전트들을 맵 내 무작위 위치에 배치합니다.",
+        "맵 중앙을 중심으로 하는 거대한 초기 원(안전구역)을 정의합니다.",
+        "에이전트들이 현재 안전구역 안에 있는지 밖에 있는지 판별합니다."
+      ],
+      "visualNarrative": [
+        "맵 경계와 커다란 청록색 원(안전구역)이 그려집니다.",
+        "지도 곳곳에 흰색 점(에이전트)들이 나타나며 초기 체력바가 함께 표시됩니다.",
+        "자기장 바깥 영역은 보라색 독가스 색상으로 칠해집니다."
+      ],
+      "afterState": "초기 안전구역과 에이전트 배치 완료",
+      "theoryExplanation": "배틀로얄 장르에서 초기 생존 구역은 플레이어들이 넓은 지역에서 탐색하고 장비를 파밍할 시간을 주는 동시에, 맵의 외곽부터 독구름(자기장)을 생성하여 점진적으로 플레이어들의 이동을 강제하기 위한 초기 상태입니다.",
+      "completionCondition": "모든 에이전트가 맵 내에 배치되고 초기 자기장 시각화가 완료됨.",
+      "failureConditions": ["맵 크기가 유효하지 않거나 에이전트 수가 0 이하인 경우"],
+      "nextEntryRelation": "초기 상태가 설정되면 다음 단계에서는 이 자기장을 축소하여 플레이어들을 중앙으로 모으게 됩니다.",
+      "diagram": {
+        "nodes": [],
+        "edges": []
+      },
+      "estimatedReadMs": 5000
+    },
+    {
+      "contextId": "ctx:MagneticField.CalculateNextPhase",
+      "entryName": "MagneticField.CalculateNextPhase",
+      "sourceFingerprint": "mf-calc-v1",
+      "title": "다음 페이즈 자기장 계산 및 축소",
+      "summary": "현재 안전구역 내부의 무작위 위치를 새로운 중심으로 삼고, 반경을 줄인 다음 목표 구역으로 자기장을 축소합니다.",
+      "beforeState": "고정된 상태의 이전 안전구역",
+      "inputs": ["currentRadius", "currentCenter", "shrinkFactor"],
+      "executionNarrative": [
+        "현재 반경에 shrinkFactor(예: 0.5)를 곱해 다음 목표 반경을 계산합니다.",
+        "이전 안전구역을 벗어나지 않도록 새로운 목표 중심점을 계산합니다.",
+        "현재 중심과 반경에서 목표 중심과 반경으로 60 프레임 동안 보간(Interpolate)하여 값을 업데이트합니다."
+      ],
+      "visualNarrative": [
+        "먼저 다음으로 축소될 목표 구역이 점선으로 표시됩니다.",
+        "안전구역의 중심과 경계선이 서서히 목표 영역을 향해 이동하며 줄어듭니다.",
+        "축소가 진행됨에 따라 안전구역 밖으로 밀려나는 에이전트들은 붉은색 틴트로 변경됩니다."
+      ],
+      "afterState": "새로운 중심점과 더 작아진 반경을 가진 안전구역 완성",
+      "theoryExplanation": "자기장이 축소될 때마다 새로운 중심점은 이전 안전구역 내부에 있어야 플레이어들이 예측할 수 없는 위치로 이동하면서도 합리적으로 도달할 수 있습니다. 이는 플레이어 간의 무작위 조우를 유도하고 교전 빈도를 높입니다.",
+      "completionCondition": "현재 반경과 중심점이 목표 반경과 중심점에 도달하고 축소 애니메이션이 종료됨.",
+      "failureConditions": ["현재 반경이 이미 최소 허용치 이하인 경우"],
+      "nextEntryRelation": "자기장이 완전히 좁아지면, 그 외곽에 남겨진 에이전트들에게 페널티(데미지)를 가하게 됩니다.",
+      "diagram": {
+        "nodes": [],
+        "edges": []
+      },
+      "estimatedReadMs": 7000
+    },
+    {
+      "contextId": "ctx:MagneticField.ApplyDamageToOutsideAgents",
+      "entryName": "MagneticField.ApplyDamageToOutsideAgents",
+      "sourceFingerprint": "mf-dmg-v1",
+      "title": "안전구역 외곽 에이전트 데미지 적용",
+      "summary": "안전구역 밖에 있는 에이전트를 식별하여 체력을 깎고 사망 처리를 진행합니다.",
+      "beforeState": "안전구역 축소 직후의 고정 상태",
+      "inputs": ["agents", "currentCenter", "currentRadius", "tickDamage"],
+      "executionNarrative": [
+        "모든 에이전트의 위치와 현재 자기장 중심 간의 거리를 계산하여 외곽 여부를 업데이트합니다.",
+        "안전구역 외곽에 있는 에이전트의 HP를 tickDamage 만큼 차감합니다.",
+        "HP가 0 이하로 떨어진 에이전트는 사망(DEAD) 상태로 표시합니다."
+      ],
+      "visualNarrative": [
+        "자기장 밖에 있는 에이전트는 순간적으로 붉게 점멸(flash)합니다.",
+        "해당 에이전트의 체력바가 감소하는 것이 표시됩니다.",
+        "체력이 바닥난 에이전트는 회색으로 변하며 'DEAD' 마커가 표시됩니다."
+      ],
+      "afterState": "자기장 외곽 플레이어 체력 감소 혹은 사망 반영",
+      "theoryExplanation": "게임 이론 측면에서 안전구역 외곽의 지속적 피해는 플레이어들에게 '시간 제한(Time Pressure)'과 '위치 페널티'를 주어 게임이 무한정 늘어지는 것을 방지합니다. 플레이어는 안전구역 진입이라는 공통 목표를 강제받습니다.",
+      "completionCondition": "외곽에 있는 모든 에이전트의 HP가 차감되고 시각적 피드백이 종료됨.",
+      "failureConditions": ["에이전트 배열이 비어있는 경우"],
+      "nextEntryRelation": "이 과정은 틱 단위로 반복되거나 다음 페이즈의 자기장 축소 사이클로 이어집니다.",
+      "diagram": {
+        "nodes": [],
+        "edges": []
+      },
+      "estimatedReadMs": 6000
+    }
+  ]
+}

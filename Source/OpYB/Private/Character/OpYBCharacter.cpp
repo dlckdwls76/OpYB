@@ -46,7 +46,7 @@ AOpYBCharacter::AOpYBCharacter()
 	PrimaryActorTick.bStartWithTickEnabled = true;
 
 	// Combat Defaults
-	FireRate = 0.1f; // 0.1초마다 1발 (1초에 10발)
+	FireRate = 0.1f; // 0.1초마다 1발 (단발 사격 시 답답함 방지)
 	LastFireTime = 0.0f;
 }
 
@@ -75,18 +75,27 @@ void AOpYBCharacter::PlayRollMontage()
 void AOpYBCharacter::AttemptShoot()
 {
 	float CurrentTime = GetWorld()->GetTimeSeconds();
-	
-	// 쿨타임(연사 속도) 체크
+
+	UE_LOG(LogTemp, Warning, TEXT("2. [Character] AttemptShoot 호출됨! (쿨타임 검사 중...)"));
+
+	// 쿨타임(연사 속도) 체크 (이게 없으면 1초에 60발이 나가서 총알끼리 부딪혀서 터집니다!)
 	if (CurrentTime - LastFireTime >= FireRate)
 	{
 		LastFireTime = CurrentTime;
 
-		// 캐릭터 캡슐과 아예 겹치지 않도록 스폰 거리를 150으로 넉넉히 벌립니다.
-		FVector SpawnLocation = GetActorLocation() + GetActorForwardVector() * 150.0f + FVector(0, 0, 20.0f);
-		FRotator SpawnRotation = GetActorRotation();
+		UE_LOG(LogTemp, Warning, TEXT("3. [Character] 쿨타임 통과! (발사 승인)"));
 
+		// 총알이 캐릭터 몸 정중앙(내부)에서부터 발사되도록 앞쪽 거리(Offset)를 없앱니다.
+		// Z축으로만 살짝(20) 올려서 총구 높이 정도에 맞춥니다.
+		FVector SpawnLocation = GetActorLocation() + FVector(0, 0, 20.0f);
+		FRotator SpawnRotation = GetActorRotation();
+		
 		// ServerRPC to spawn the projectile
 		ServerShoot(SpawnLocation, SpawnRotation);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("X. [Character] 쿨타임에 막힘! (아직 안 나감)"));
 	}
 }
 
@@ -97,6 +106,8 @@ bool AOpYBCharacter::ServerShoot_Validate(FVector SpawnLocation, FRotator SpawnR
 
 void AOpYBCharacter::ServerShoot_Implementation(FVector SpawnLocation, FRotator SpawnRotation)
 {
+	UE_LOG(LogTemp, Warning, TEXT("4. [Server] 서버에서 스폰 요청 받음!"));
+
 	if (ProjectileClass)
 	{
 		// Deferred Spawning (지연 생성)을 사용하여, 물리 충돌이 계산되기 전에 Owner와 Instigator를 완벽하게 주입합니다.
@@ -107,6 +118,11 @@ void AOpYBCharacter::ServerShoot_Implementation(FVector SpawnLocation, FRotator 
 		{
 			// 생성을 완료하며 물리 엔진에 등록
 			Proj->FinishSpawning(SpawnTransform);
+			UE_LOG(LogTemp, Warning, TEXT("5. [Server] 총알 최종 스폰 완료!"));
 		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("X. [Server] ProjectileClass가 블루프린트에 등록되어 있지 않습니다!!"));
 	}
 }

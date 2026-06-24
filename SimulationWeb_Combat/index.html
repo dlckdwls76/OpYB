@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>2차원 게임 이론 교육 시스템 - 이동 및 사격</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --panel-bg: #222;
+            --text-color: #ddd;
+            --highlight: #0088ff;
+            --highlight-bg: rgba(0, 136, 255, 0.1);
+            --danger: #ff4444;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #left-panel {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-right: 1px solid #444;
+        }
+
+        #right-panel {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: var(--panel-bg);
+            display: flex;
+            flex-direction: column;
+        }
+
+        canvas {
+            background-color: #111;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            margin-top: 20px;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #333;
+            color: white;
+            border: 1px solid #555;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #444;
+        }
+
+        button:disabled {
+            background-color: #222;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .status-bar {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        /* Context Styles */
+        .context-block {
+            display: none;
+            opacity: 0.5;
+            transition: opacity 0.3s;
+            margin-bottom: 30px;
+            padding: 15px;
+            border-left: 4px solid transparent;
+        }
+
+        .context-block.active {
+            display: block;
+            opacity: 1;
+            border-left-color: var(--highlight);
+            background-color: var(--highlight-bg);
+        }
+
+        h2 { color: var(--highlight); margin-top: 0; }
+        h3 { color: #aaa; font-size: 14px; text-transform: uppercase; margin-bottom: 5px; }
+        
+        ul { margin: 0; padding-left: 20px; }
+        li { margin-bottom: 5px; line-height: 1.4; }
+
+        .tag {
+            display: inline-block;
+            background: #444;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+
+        #timer {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--highlight);
+            margin-bottom: 15px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="left-panel">
+        <h2 id="current-entry-title">시뮬레이션 대기 중...</h2>
+        <div class="status-bar" id="status-bar">상태: idle</div>
+        
+        <canvas id="sim-canvas" width="600" height="600"></canvas>
+
+        <div class="controls">
+            <button id="btn-start">전체 재생</button>
+            <button id="btn-pause">일시정지</button>
+            <button id="btn-resume" disabled>재개</button>
+            <button id="btn-reset">처음부터</button>
+            <button id="btn-prev" disabled>이전 단계</button>
+            <button id="btn-next" disabled>다음 단계</button>
+        </div>
+    </div>
+
+    <div id="right-panel">
+        <div id="timer" style="display: none;">설명 대기 시간: <span id="timer-val">0</span>s</div>
+        <div id="context-container">
+            <!-- Contexts will be injected here -->
+        </div>
+    </div>
+
+    <script type="module">
+        import { SimulationState } from './simulation-state.js';
+        import { SimulationRenderer } from './simulation-renderer.js';
+        import { registry } from './simulation-entries.js';
+
+        let manifest, contextData, syncData;
+        let currentState = 'idle'; // idle, executing, explaining, paused, completed, error
+        let currentPhaseIndex = 0;
+        
+        let simState = new SimulationState(600, 600);
+        let renderer = new SimulationRenderer('sim-canvas');
+        
+        let holdTimer = null;
+        let remainingHoldMs = 0;
+        let holdStartTime = 0;
+
+        let runtime = {
+            state: simState,
+            renderer: renderer,
+            isPaused: false,
+            async waitWhilePaused() {
+                while(this.isPaused) {
+                    await new Promise(r => setTimeout(r, 100));
+                }
+            }
+        };
+
+        const ui = {
+            title: document.getElementById('current-entry-title'),
+            status: document.getElementById('status-bar'),
+            contextContainer: document.getElementById('context-container'),
+            timer: document.getElementById('timer'),
+            timerVal: document.getElementById('timer-val'),
+            btnStart: document.getElementById('btn-start'),
+            btnPause: document.getElementById('btn-pause'),
+            btnResume: document.getElementById('btn-resume'),
+            btnReset: document.getElementById('btn-reset'),
+            btnPrev: document.getElementById('btn-prev'),
+            btnNext: document.getElementById('btn-next')
+        };
+
+        async function loadData() {
+            try {
+                // Ensure files are served via local web server to avoid CORS issues
+                const r1 = await fetch('game-system.manifest.json');
+                manifest = await r1.json();
+                
+                const r2 = await fetch('explanation-context.json');
+                contextData = await r2.json();
+
+                const r3 = await fetch('index-sync.json');
+                syncData = await r3.json();
+
+                buildContextUI();
+                renderer.render(simState);
+                
+                ui.title.innerText = "준비 완료";
+            } catch (err) {
+                ui.title.innerText = "데이터 로딩 실패! (웹 서버로 실행해주세요)";
+                console.error(err);
+                changeState('error');
+            }
+        }
+
+        function buildContextUI() {
+            ui.contextContainer.innerHTML = '';
+            contextData.contexts.forEach((ctx, i) => {
+                const div = document.createElement('div');
+                div.className = 'context-block';
+                div.id = `ctx-block-${i}`;
+                div.dataset.readerIndex = i;
+
+                div.innerHTML = `
+                    <h2>[${i}] ${ctx.title}</h2>
+                    <p><strong>핵심 목적:</strong> ${ctx.summary}</p>
+                    
+                    <h3>이론적 의미</h3>
+                    <p>${ctx.theoryExplanation}</p>
+
+                    <h3>실행 과정</h3>
+                    <ul>${ctx.executionNarrative.map(n => `<li>${n}</li>`).join('')}</ul>
+
+                    <h3>시각적 변화</h3>
+                    <ul>${ctx.visualNarrative.map(n => `<li>${n}</li>`).join('')}</ul>
+
+                    <h3>입력 데이터</h3>
+                    <div>${ctx.inputs.map(inp => `<span class="tag">${inp}</span>`).join('')}</div>
+                `;
+                ui.contextContainer.appendChild(div);
+            });
+        }
+
+        function changeState(newState) {
+            currentState = newState;
+            ui.status.innerText = `상태: ${currentState}`;
+            
+            ui.btnStart.disabled = newState !== 'idle' && newState !== 'completed';
+            ui.btnPause.disabled = newState !== 'executing' && newState !== 'explaining';
+            ui.btnResume.disabled = newState !== 'paused';
+            ui.btnPrev.disabled = currentPhaseIndex === 0;
+            ui.btnNext.disabled = currentPhaseIndex === syncData.sequence.length - 1;
+        }
+
+        function highlightContext(index) {
+            document.querySelectorAll('.context-block').forEach(el => el.classList.remove('active'));
+            const activeEl = document.getElementById(`ctx-block-${index}`);
+            if (activeEl) {
+                activeEl.classList.add('active');
+                activeEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        async function runSequence() {
+            if (currentState === 'paused') {
+                resumeSequence();
+                return;
+            }
+            if (currentPhaseIndex >= syncData.sequence.length) {
+                changeState('completed');
+                ui.title.innerText = "모든 교육 단계 완료";
+                return;
+            }
+
+            const step = syncData.sequence[currentPhaseIndex];
+            ui.title.innerText = `[${step.index}] ${step.entryName}`;
+            
+            // Execute
+            changeState('executing');
+            const entry = registry.get(step.entryName);
+            await entry.execute(runtime);
+
+            if (currentState === 'paused') return; // Wait until resumed
+
+            // Explain
+            changeState('explaining');
+            highlightContext(currentPhaseIndex);
+            
+            await doExplainWait(step.holdMs);
+
+            if (currentState === 'paused') return; 
+
+            // Next
+            currentPhaseIndex++;
+            document.querySelectorAll('.context-block').forEach(el => el.classList.remove('active'));
+            runSequence();
+        }
+
+        async function doExplainWait(ms) {
+            remainingHoldMs = ms;
+            ui.timer.style.display = 'block';
+            
+            return new Promise(resolve => {
+                const tick = () => {
+                    if (currentState === 'paused') {
+                        setTimeout(tick, 100);
+                        return;
+                    }
+                    if (remainingHoldMs <= 0) {
+                        ui.timer.style.display = 'none';
+                        resolve();
+                        return;
+                    }
+                    ui.timerVal.innerText = (remainingHoldMs / 1000).toFixed(1);
+                    remainingHoldMs -= 100;
+                    setTimeout(tick, 100);
+                };
+                tick();
+            });
+        }
+
+        function pauseSequence() {
+            if (currentState === 'executing' || currentState === 'explaining') {
+                runtime.isPaused = true;
+                changeState('paused');
+            }
+        }
+
+        function resumeSequence() {
+            if (currentState === 'paused') {
+                runtime.isPaused = false;
+                // We return to previous state logically (the loops will just continue)
+                changeState('executing'); // simplistic restore, actual restore handled by loops continuing
+            }
+        }
+
+        function resetSequence() {
+            currentPhaseIndex = 0;
+            simState = new SimulationState(600, 600);
+            runtime.state = simState;
+            runtime.isPaused = false;
+            remainingHoldMs = 0;
+            ui.timer.style.display = 'none';
+            document.querySelectorAll('.context-block').forEach(el => el.classList.remove('active'));
+            renderer.render(simState);
+            ui.title.innerText = "준비 완료";
+            changeState('idle');
+        }
+
+        // Event Listeners
+        ui.btnStart.onclick = () => {
+            if (currentState === 'idle' || currentState === 'completed') {
+                resetSequence();
+                runSequence();
+            }
+        };
+        ui.btnPause.onclick = pauseSequence;
+        ui.btnResume.onclick = resumeSequence;
+        ui.btnReset.onclick = resetSequence;
+
+        // Initialize
+        window.onload = loadData;
+
+    </script>
+</body>
+</html>

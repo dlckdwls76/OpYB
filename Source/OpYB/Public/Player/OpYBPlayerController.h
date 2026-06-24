@@ -27,7 +27,7 @@ protected:
 
 	/** MappingContext */
 	UPROPERTY(EditAnywhere, Category="Input")
-	TObjectPtr<UInputMappingContext> DefaultMappingContext;
+	TObjectPtr<UInputMappingContext> DefaultMapingContext;
 	
 	/** Move Forward Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
@@ -40,10 +40,6 @@ protected:
 	/** Shoot Input Action (Left Click) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
 	TObjectPtr<UInputAction> ShootAction;
-
-	/** Dynamic Mapping Context */
-	UPROPERTY(Transient)
-	TObjectPtr<UInputMappingContext> DynamicMappingContext;
 
 public:
 
@@ -71,5 +67,5 @@ protected:
 	/** Server RPC for syncing rotation */
 	UFUNCTION(Server, Unreliable, WithValidation)
 	void ServerSetPawnRotation(FRotator NewRotation);
-
+	
 };

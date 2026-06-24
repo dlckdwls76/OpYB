@@ -1,0 +1,57 @@
+{
+  "systemId": "system:MagneticFieldShrink",
+  "sequence": [
+    {
+      "index": "0",
+      "entryName": "MagneticField.Initialize",
+      "contextId": "ctx:MagneticField.Initialize",
+      "sourceFingerprint": "mf-init-v1",
+      "explainPhase": "after",
+      "holdMs": 5000,
+      "runPolicy": "await-entry-completion",
+      "visualTargets": [
+        "initial-boundary",
+        "spawned-agents"
+      ],
+      "contextTargets": [
+        "summary",
+        "executionNarrative"
+      ]
+    },
+    {
+      "index": "1",
+      "entryName": "MagneticField.CalculateNextPhase",
+      "contextId": "ctx:MagneticField.CalculateNextPhase",
+      "sourceFingerprint": "mf-calc-v1",
+      "explainPhase": "after",
+      "holdMs": 7000,
+      "runPolicy": "await-entry-completion",
+      "visualTargets": [
+        "shrinking-animation",
+        "target-zone-dash"
+      ],
+      "contextTargets": [
+        "executionNarrative",
+        "theoryExplanation"
+      ]
+    },
+    {
+      "index": "2",
+      "entryName": "MagneticField.ApplyDamageToOutsideAgents",
+      "contextId": "ctx:MagneticField.ApplyDamageToOutsideAgents",
+      "sourceFingerprint": "mf-dmg-v1",
+      "explainPhase": "after",
+      "holdMs": 6000,
+      "runPolicy": "await-entry-completion",
+      "visualTargets": [
+        "flashing-agents",
+        "hp-bar-decrease",
+        "dead-marker"
+      ],
+      "contextTargets": [
+        "visualNarrative",
+        "theoryExplanation"
+      ]
+    }
+  ]
+}

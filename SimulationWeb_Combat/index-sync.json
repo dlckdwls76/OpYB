@@ -1,0 +1,58 @@
+{
+  "systemId": "system:CombatMovementShrink",
+  "sequence": [
+    {
+      "index": "0",
+      "entryName": "Combat.CalculateMovement",
+      "contextId": "ctx:Combat.CalculateMovement",
+      "sourceFingerprint": "combat-move-v1",
+      "explainPhase": "after",
+      "holdMs": 7000,
+      "runPolicy": "await-entry-completion",
+      "visualTargets": [
+        "character-move",
+        "direction-vector"
+      ],
+      "contextTargets": [
+        "summary",
+        "theoryExplanation"
+      ]
+    },
+    {
+      "index": "1",
+      "entryName": "Combat.AimAtCursor",
+      "contextId": "ctx:Combat.AimAtCursor",
+      "sourceFingerprint": "combat-aim-v1",
+      "explainPhase": "after",
+      "holdMs": 7000,
+      "runPolicy": "await-entry-completion",
+      "visualTargets": [
+        "cursor-crosshair",
+        "character-rotation",
+        "aim-line"
+      ],
+      "contextTargets": [
+        "executionNarrative",
+        "theoryExplanation"
+      ]
+    },
+    {
+      "index": "2",
+      "entryName": "Combat.ShootProjectile",
+      "contextId": "ctx:Combat.ShootProjectile",
+      "sourceFingerprint": "combat-shoot-v1",
+      "explainPhase": "after",
+      "holdMs": 7000,
+      "runPolicy": "await-entry-completion",
+      "visualTargets": [
+        "projectile-flight",
+        "target-hit",
+        "hp-decrease"
+      ],
+      "contextTargets": [
+        "visualNarrative",
+        "theoryExplanation"
+      ]
+    }
+  ]
+}

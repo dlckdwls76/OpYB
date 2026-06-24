@@ -27,17 +27,19 @@ void AOpYBPlayerController::BeginPlay()
 	// 로컬 플레이어(실제 화면을 보고 조작하는 유저)일 때만 입력 설정을 적용합니다.
 	if (IsLocalPlayerController())
 	{
-		// 입력 포커스 설정: 클릭 없이 바로 키보드 입력을 받기 위함
-		FInputModeGameOnly InputMode;
+		// 마우스 커서가 보일 때 GameOnly를 쓰면 언리얼이 클릭을 삼키는 버그가 있습니다.
+		// 따라서 GameAndUI 모드로 변경하고 캡처 중 커서 숨기기를 꺼줍니다.
+		FInputModeGameAndUI InputMode;
+		InputMode.SetHideCursorDuringCapture(false);
 		SetInputMode(InputMode);
 
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 		{
 			// DefaultMappingContext를 제거하여 마우스 좌클릭 이동을 막습니다.
-			if (DynamicMappingContext)
+			if (DefaultMapingContext)
 			{
-				Subsystem->AddMappingContext(DynamicMappingContext, 1);
-				UE_LOG(LogTemp, Warning, TEXT("Added DynamicMappingContext successfully in BeginPlay."));
+				Subsystem->AddMappingContext(DefaultMapingContext, 1);
+				UE_LOG(LogTemp, Warning, TEXT("Added DefaultMapingContext successfully in BeginPlay."));
 			}
 		}
 		else
@@ -53,52 +55,7 @@ void AOpYBPlayerController::SetupInputComponent()
 
 	if (IsLocalPlayerController())
 	{
-		// Create MoveForwardAction if it hasn't been assigned
-		if (!MoveForwardAction)
-		{
-			MoveForwardAction = NewObject<UInputAction>(this, TEXT("MoveForwardAction"));
-			MoveForwardAction->ValueType = EInputActionValueType::Axis1D;
-		}
-
-		// Create MoveRightAction if it hasn't been assigned
-		if (!MoveRightAction)
-		{
-			MoveRightAction = NewObject<UInputAction>(this, TEXT("MoveRightAction"));
-			MoveRightAction->ValueType = EInputActionValueType::Axis1D;
-		}
-
-		// Create ShootAction if it hasn't been assigned
-		if (!ShootAction)
-		{
-			ShootAction = NewObject<UInputAction>(this, TEXT("ShootAction"));
-			ShootAction->ValueType = EInputActionValueType::Boolean;
-		}
-
-		// Create a dynamic mapping context
-		DynamicMappingContext = NewObject<UInputMappingContext>(this, TEXT("DynamicMappingContext"));
-
-		// W: MoveForward = 1.0
-		DynamicMappingContext->MapKey(MoveForwardAction, EKeys::W);
-
-		// S: MoveForward = -1.0
-		FEnhancedActionKeyMapping& MappingS = DynamicMappingContext->MapKey(MoveForwardAction, EKeys::S);
-		UInputModifierNegate* NegateS = NewObject<UInputModifierNegate>(DynamicMappingContext);
-		MappingS.Modifiers.Add(NegateS);
-
-		// D: MoveRight = 1.0
-		DynamicMappingContext->MapKey(MoveRightAction, EKeys::D);
-
-		// A: MoveRight = -1.0
-		FEnhancedActionKeyMapping& MappingA = DynamicMappingContext->MapKey(MoveRightAction, EKeys::A);
-		UInputModifierNegate* NegateA = NewObject<UInputModifierNegate>(DynamicMappingContext);
-		MappingA.Modifiers.Add(NegateA);
-
-		// LeftMouseButton: Shoot
-		DynamicMappingContext->MapKey(ShootAction, EKeys::LeftMouseButton);
-
-		// Space: Roll
-		// DynamicMappingContext->MapKey(RollAction, EKeys::SpaceBar);
-
+		
 		// Set up action bindings
 		if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent))
 		{
@@ -106,12 +63,11 @@ void AOpYBPlayerController::SetupInputComponent()
 			EnhancedInputComponent->BindAction(MoveForwardAction, ETriggerEvent::Triggered, this, &AOpYBPlayerController::MoveForward);
 			EnhancedInputComponent->BindAction(MoveRightAction, ETriggerEvent::Triggered, this, &AOpYBPlayerController::MoveRight);
 			
-			// Setup shoot input (클릭할 때마다 1발씩 발사되도록 Started로 복구)
-			EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Started, this, &AOpYBPlayerController::Shoot);
-			
-			// Setup roll input
-			// EnhancedInputComponent->BindAction(RollAction, ETriggerEvent::Started, this, &AOpYBPlayerController::DoRoll);
-			
+			// Setup shoot input (클릭 -> 뗄 때 발사되도록 Completed로 설정)
+			if (ShootAction)
+			{
+				EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Triggered, this, &AOpYBPlayerController::Shoot);
+			}
 			UE_LOG(LogTemp, Warning, TEXT("Successfully bound Input Actions."));
 		}
 	}
@@ -176,10 +132,14 @@ void AOpYBPlayerController::MoveRight(const FInputActionValue& Value)
 
 void AOpYBPlayerController::Shoot()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Shoot Action Triggered!"));
+	UE_LOG(LogTemp, Warning, TEXT("1. [PlayerController] 마우스 클릭 감지됨!"));
 	if (AOpYBCharacter* ControlledCharacter = Cast<AOpYBCharacter>(GetPawn()))
 	{
 		ControlledCharacter->AttemptShoot();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("X. [PlayerController] 조종 중인 캐릭터를 찾을 수 없습니다!"));
 	}
 }
 
