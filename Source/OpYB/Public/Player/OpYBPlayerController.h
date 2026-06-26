@@ -10,6 +10,7 @@ class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
 class UNiagaraSystem;
+class UOpYBAimCursorWidget;
 
 /**
  *  Player controller for a top-down perspective game.
@@ -44,6 +45,14 @@ protected:
 	/** Roll Input Action (Spacebar) */
 //	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
 //	TObjectPtr<UInputAction> RollAction;
+
+	/** Custom dynamic aim cursor class */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
+	TSubclassOf<UOpYBAimCursorWidget> AimCursorClass;
+
+	/** Instance of the custom aim cursor */
+	UPROPERTY()
+	TObjectPtr<UOpYBAimCursorWidget> AimCursorInstance;
 
 public:
 

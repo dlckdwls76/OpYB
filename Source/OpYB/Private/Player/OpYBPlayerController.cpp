@@ -11,13 +11,17 @@
 #include "InputAction.h"
 #include "InputModifiers.h"
 #include "Engine/LocalPlayer.h"
+#include "UI/OpYBAimCursorWidget.h"
 #include "OpYB.h"
 
 AOpYBPlayerController::AOpYBPlayerController()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	bShowMouseCursor = true;
-	DefaultMouseCursor = EMouseCursor::Default;
+	
+	// 마우스 좌표 추적을 유지하기 위해 true로 두되, 
+	// 실제 윈도우 마우스 포인터는 EMouseCursor::None으로 지정해 완벽히 숨깁니다.
+	bShowMouseCursor = true; 
+	DefaultMouseCursor = EMouseCursor::None;
 }
 
 void AOpYBPlayerController::BeginPlay()
@@ -27,11 +31,19 @@ void AOpYBPlayerController::BeginPlay()
 	// 로컬 플레이어(실제 화면을 보고 조작하는 유저)일 때만 입력 설정을 적용합니다.
 	if (IsLocalPlayerController())
 	{
-		// 마우스 커서가 보일 때 GameOnly를 쓰면 언리얼이 클릭을 삼키는 버그가 있습니다.
-		// 따라서 GameAndUI 모드로 변경하고 캡처 중 커서 숨기기를 꺼줍니다.
-		FInputModeGameAndUI InputMode;
-		InputMode.SetHideCursorDuringCapture(false);
+		// 위젯이 키보드 포커스를 뺏어가는 것을 방지 (사격 전 이동 불가 버그 수정)
+		FInputModeGameOnly InputMode;
 		SetInputMode(InputMode);
+
+		// 다이내믹 에임 커서 위젯 생성
+		if (AimCursorClass)
+		{
+			AimCursorInstance = CreateWidget<UOpYBAimCursorWidget>(this, AimCursorClass);
+			if (AimCursorInstance)
+			{
+				AimCursorInstance->AddToViewport(100); // 100 Z-order로 항상 맨 위에 띄움
+			}
+		}
 
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 		{
@@ -154,6 +166,12 @@ void AOpYBPlayerController::Shoot()
 	{
 //		if (ControlledCharacter->IsRolling()) return; // 구르기 중 사격 불가
 		ControlledCharacter->AttemptShoot();
+
+		// 사격 시 에임 반동 애니메이션
+		if (AimCursorInstance)
+		{
+			AimCursorInstance->PlayShootAnimation();
+		}
 	}
 	else
 	{

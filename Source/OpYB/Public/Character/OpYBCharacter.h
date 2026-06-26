@@ -76,11 +76,7 @@ public:
 
 	/** 마지막으로 발사한 시간 기록용 */
 	float LastFireTime;
-
-
-
-
-
+	
 	/** Attempts to shoot (called locally) */
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void AttemptShoot();

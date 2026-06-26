@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>2차원 게임 이론 교육 시스템 - 자기장</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --panel-bg: #222;
+            --text-color: #ddd;
+            --highlight: #00ffcc;
+            --highlight-bg: rgba(0, 255, 204, 0.1);
+            --danger: #ff4444;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #left-panel {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-right: 1px solid #444;
+        }
+
+        #right-panel {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: var(--panel-bg);
+            display: flex;
+            flex-direction: column;
+        }
+
+        canvas {
+            background-color: #111;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            margin-top: 20px;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #333;
+            color: white;
+            border: 1px solid #555;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #444;
+        }
+
+        button:disabled {
+            background-color: #222;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .status-bar {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        /* Context Styles */
+        .context-block {
+            display: none;
+            opacity: 0.5;
+            transition: opacity 0.3s;
+            margin-bottom: 30px;
+            padding: 15px;
+            border-left: 4px solid transparent;
+        }
+
+        .context-block.active {
+            display: block;
+            opacity: 1;
+            border-left-color: var(--highlight);
+            background-color: var(--highlight-bg);
+        }
+
+        h2 { color: var(--highlight); margin-top: 0; }
+        h3 { color: #aaa; font-size: 14px; text-transform: uppercase; margin-bottom: 5px; }
+        
+        ul { margin: 0; padding-left: 20px; }
+        li { margin-bottom: 5px; line-height: 1.4; }
+
+        .tag {
+            display: inline-block;
+            background: #444;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+
+        #timer {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--highlight);
+            margin-bottom: 15px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="left-panel">
+        <h2 id="current-entry-title">시뮬레이션 대기 중...</h2>
+        <div class="status-bar" id="status-bar">상태: idle</div>
+        
+        <canvas id="sim-canvas" width="600" height="600"></canvas>
+
+        <div class="controls">
+            <button id="btn-start">전체 재생</button>
+            <button id="btn-pause">일시정지</button>
+            <button id="btn-resume" disabled>재개</button>
+            <button id="btn-reset">처음부터</button>
+            <button id="btn-prev" disabled>이전 단계</button>
+            <button id="btn-next" disabled>다음 단계</button>
+        </div>
+    </div>
+
+    <div id="right-panel">
+        <div id="timer" style="display: none;">설명 대기 시간: <span id="timer-val">0</span>s</div>
+        <div id="context-container">
+            <!-- Contexts will be injected here -->
+        </div>
+    </div>
+
+    <script>
+                        
+        
+        let manifest = {
+  "systemId": "system:MagneticFieldShrink",
+  "entries": [
+    {
+      "entryName": "MagneticField.Initialize",
+      "sourceFile": "simulation-entries.js",
+      "sourceFingerprint": "mf-init-v1",
+      "requiredUsage": {
+        "purpose": "최초의 자기장 중심점과 최대 반경, 에이전트들의 초기 위치를 설정한다.",
+        "preconditions": [
+          "시뮬레이션 상태가 초기화되어 있어야 한다."
+        ],
+        "inputs": [
+          "mapSize: 맵의 전체 크기",
+          "agentCount: 스폰할 에이전트 수"
+        ],
+        "outputs": [
+          "초기 자기장 영역 (중심점, 반경)",
+          "생성된 에이전트 배열"
+        ],
+        "sideEffects": [
+          "화면에 맵 경계, 초기 자기장, 에이전트들이 렌더링된다."
+        ],
+        "completionCondition": "모든 에이전트가 맵 내에 배치되고 초기 자기장 시각화가 완료됨.",
+        "failureConditions": [
+          "맵 크기가 유효하지 않거나 에이전트 수가 0 이하인 경우"
+        ]
+      }
+    },
+    {
+      "entryName": "MagneticField.CalculateNextPhase",
+      "sourceFile": "simulation-entries.js",
+      "sourceFingerprint": "mf-calc-v1",
+      "requiredUsage": {
+        "purpose": "다음 페이즈의 좁아진 자기장 목표 반경과 새로운 중심점을 계산한다.",
+        "preconditions": [
+          "초기 자기장이 존재해야 한다.",
+          "현재 진행 중인 축소 애니메이션이 없어야 한다."
+        ],
+        "inputs": [
+          "currentRadius: 현재 자기장 반경",
+          "currentCenter: 현재 자기장 중심점",
+          "shrinkFactor: 축소 비율 (예: 0.6)"
+        ],
+        "outputs": [
+          "targetRadius: 다음 페이즈의 목표 반경",
+          "targetCenter: 다음 페이즈의 목표 중심점"
+        ],
+        "sideEffects": [
+          "시각적으로 다음 목표 영역이 점선으로 표시되고, 서서히 현재 자기장이 목표를 향해 축소 애니메이션을 재생한다."
+        ],
+        "completionCondition": "현재 반경과 중심점이 목표 반경과 중심점에 도달하고 애니메이션이 종료됨.",
+        "failureConditions": [
+          "현재 반경이 이미 최소 허용치 이하인 경우"
+        ]
+      }
+    },
+    {
+      "entryName": "MagneticField.ApplyDamageToOutsideAgents",
+      "sourceFile": "simulation-entries.js",
+      "sourceFingerprint": "mf-dmg-v1",
+      "requiredUsage": {
+        "purpose": "자기장 외곽에 있는 에이전트들을 식별하고 지속적인 틱 데미지를 적용한다.",
+        "preconditions": [
+          "자기장 축소가 완료되어 고정된 상태여야 한다."
+        ],
+        "inputs": [
+          "agents: 현재 에이전트 배열",
+          "currentCenter: 현재 자기장 중심점",
+          "currentRadius: 현재 자기장 반경",
+          "tickDamage: 틱당 감소할 HP량"
+        ],
+        "outputs": [
+          "변경된 에이전트들의 HP 상태"
+        ],
+        "sideEffects": [
+          "안전구역 밖에 있는 에이전트들의 색상이 붉게 점멸하고 HP 수치가 깎이는 애니메이션이 출력된다. HP가 0이 되면 파괴 이펙트와 함께 제거 표시가 된다."
+        ],
+        "completionCondition": "안전구역 외곽에 있는 모든 에이전트에 한 틱의 데미지가 시각적으로 모두 적용됨.",
+        "failureConditions": [
+          "에이전트 배열이 비어있는 경우"
+        ]
+      }
+    }
+  ]
+}
+;
+        let contextData = {
+  "systemId": "system:MagneticFieldShrink",
+  "contexts": [
+    {
+      "contextId": "ctx:MagneticField.Initialize",
+      "entryName": "MagneticField.Initialize",
+      "sourceFingerprint": "mf-init-v1",
+      "title": "초기 자기장 및 에이전트 생성",
+      "summary": "게임 시작 시 맵 전체 크기에 비례하는 초기 안전구역을 설정하고 플레이어들을 스폰합니다.",
+      "beforeState": "빈 맵 영역",
+      "inputs": ["mapSize", "agentCount"],
+      "executionNarrative": [
+        "지정된 수만큼 에이전트들을 맵 내 무작위 위치에 배치합니다.",
+        "맵 중앙을 중심으로 하는 거대한 초기 원(안전구역)을 정의합니다.",
+        "에이전트들이 현재 안전구역 안에 있는지 밖에 있는지 판별합니다."
+      ],
+      "visualNarrative": [
+        "맵 경계와 커다란 청록색 원(안전구역)이 그려집니다.",
+        "지도 곳곳에 흰색 점(에이전트)들이 나타나며 초기 체력바가 함께 표시됩니다.",
+        "자기장 바깥 영역은 보라색 독가스 색상으로 칠해집니다."
+      ],
+      "afterState": "초기 안전구역과 에이전트 배치 완료",
+      "theoryExplanation": "배틀로얄 장르에서 초기 생존 구역은 플레이어들이 넓은 지역에서 탐색하고 장비를 파밍할 시간을 주는 동시에, 맵의 외곽부터 독구름(자기장)을 생성하여 점진적으로 플레이어들의 이동을 강제하기 위한 초기 상태입니다.",
+      "completionCondition": "모든 에이전트가 맵 내에 배치되고 초기 자기장 시각화가 완료됨.",
+      "failureConditions": ["맵 크기가 유효하지 않거나 에이전트 수가 0 이하인 경우"],
+      "nextEntryRelation": "초기 상태가 설정되면 다음 단계에서는 이 자기장을 축소하여 플레이어들을 중앙으로 모으게 됩니다.",
+      "diagram": {
+        "nodes": [],
+        "edges": []
+      },
+      "estimatedReadMs": 5000
+    },
+    {
+      "contextId": "ctx:MagneticField.CalculateNextPhase",
+      "entryName": "MagneticField.CalculateNextPhase",
+      "sourceFingerprint": "mf-calc-v1",
+      "title": "다음 페이즈 자기장 계산 및 축소",
+      "summary": "현재 안전구역 내부의 무작위 위치를 새로운 중심으로 삼고, 반경을 줄인 다음 목표 구역으로 자기장을 축소합니다.",
+      "beforeState": "고정된 상태의 이전 안전구역",
+      "inputs": ["currentRadius", "currentCenter", "shrinkFactor"],
+      "executionNarrative": [
+        "현재 반경에 shrinkFactor(예: 0.5)를 곱해 다음 목표 반경을 계산합니다.",
+        "이전 안전구역을 벗어나지 않도록 새로운 목표 중심점을 계산합니다.",
+        "현재 중심과 반경에서 목표 중심과 반경으로 60 프레임 동안 보간(Interpolate)하여 값을 업데이트합니다."
+      ],
+      "visualNarrative": [
+        "먼저 다음으로 축소될 목표 구역이 점선으로 표시됩니다.",
+        "안전구역의 중심과 경계선이 서서히 목표 영역을 향해 이동하며 줄어듭니다.",
+        "축소가 진행됨에 따라 안전구역 밖으로 밀려나는 에이전트들은 붉은색 틴트로 변경됩니다."
+      ],
+      "afterState": "새로운 중심점과 더 작아진 반경을 가진 안전구역 완성",
+      "theoryExplanation": "자기장이 축소될 때마다 새로운 중심점은 이전 안전구역 내부에 있어야 플레이어들이 예측할 수 없는 위치로 이동하면서도 합리적으로 도달할 수 있습니다. 이는 플레이어 간의 무작위 조우를 유도하고 교전 빈도를 높입니다.",
+      "completionCondition": "현재 반경과 중심점이 목표 반경과 중심점에 도달하고 축소 애니메이션이 종료됨.",
+      "failureConditions": ["현재 반경이 이미 최소 허용치 이하인 경우"],
+      "nextEntryRelation": "자기장이 완전히 좁아지면, 그 외곽에 남겨진 에이전트들에게 페널티(데미지)를 가하게 됩니다.",
+      "diagram": {
+        "nodes": [],
+        "edges": []
+      },
+      "estimatedReadMs": 7000
+    },
+    {
+      "contextId": "ctx:MagneticField.ApplyDamageToOutsideAgents",
+      "entryName": "MagneticField.ApplyDamageToOutsideAgents",
+      "sourceFingerprint": "mf-dmg-v1",
+      "title": "안전구역 외곽 에이전트 데미지 적용",
+      "summary": "안전구역 밖에 있는 에이전트를 식별하여 체력을 깎고 사망 처리를 진행합니다.",
+      "beforeState": "안전구역 축소 직후의 고정 상태",
+      "inputs": ["agents", "currentCenter", "currentRadius", "tickDamage"],
+      "executionNarrative": [
+        "모든 에이전트의 위치와 현재 자기장 중심 간의 거리를 계산하여 외곽 여부를 업데이트합니다.",
+        "안전구역 외곽에 있는 에이전트의 HP를 tickDamage 만큼 차감합니다.",
+        "HP가 0 이하로 떨어진 에이전트는 사망(DEAD) 상태로 표시합니다."
+      ],
+      "visualNarrative": [
+        "자기장 밖에 있는 에이전트는 순간적으로 붉게 점멸(flash)합니다.",
+        "해당 에이전트의 체력바가 감소하는 것이 표시됩니다.",
+        "체력이 바닥난 에이전트는 회색으로 변하며 'DEAD' 마커가 표시됩니다."
+      ],
+      "afterState": "자기장 외곽 플레이어 체력 감소 혹은 사망 반영",
+      "theoryExplanation": "게임 이론 측면에서 안전구역 외곽의 지속적 피해는 플레이어들에게 '시간 제한(Time Pressure)'과 '위치 페널티'를 주어 게임이 무한정 늘어지는 것을 방지합니다. 플레이어는 안전구역 진입이라는 공통 목표를 강제받습니다.",
+      "completionCondition": "외곽에 있는 모든 에이전트의 HP가 차감되고 시각적 피드백이 종료됨.",
+      "failureConditions": ["에이전트 배열이 비어있는 경우"],
+      "nextEntryRelation": "이 과정은 틱 단위로 반복되거나 다음 페이즈의 자기장 축소 사이클로 이어집니다.",
+      "diagram": {
+        "nodes": [],
+        "edges": []
+      },
+      "estimatedReadMs": 6000
+    }
+  ]
+}
+;
+        let syncData = {
+  "systemId": "system:MagneticFieldShrink",
+  "sequence": [
+    {
+      "index": "0",
+      "entryName": "MagneticField.Initialize",
+      "contextId": "ctx:MagneticField.Initialize",
+      "sourceFingerprint": "mf-init-v1",
+      "explainPhase": "after",
+      "holdMs": 5000,
+      "runPolicy": "await-entry-completion",
+      "visualTargets": [
+        "initial-boundary",
+        "spawned-agents"
+      ],
+      "contextTargets": [
+        "summary",
+        "executionNarrative"
+      ]
+    },
+    {
+      "index": "1",
+      "entryName": "MagneticField.CalculateNextPhase",
+      "contextId": "ctx:MagneticField.CalculateNextPhase",
+      "sourceFingerprint": "mf-calc-v1",
+      "explainPhase": "after",
+      "holdMs": 7000,
+      "runPolicy": "await-entry-completion",
+      "visualTargets": [
+        "shrinking-animation",
+        "target-zone-dash"
+      ],
+      "contextTargets": [
+        "executionNarrative",
+        "theoryExplanation"
+      ]
+    },
+    {
+      "index": "2",
+      "entryName": "MagneticField.ApplyDamageToOutsideAgents",
+      "contextId": "ctx:MagneticField.ApplyDamageToOutsideAgents",
+      "sourceFingerprint": "mf-dmg-v1",
+      "explainPhase": "after",
+      "holdMs": 6000,
+      "runPolicy": "await-entry-completion",
+      "visualTargets": [
+        "flashing-agents",
+        "hp-bar-decrease",
+        "dead-marker"
+      ],
+      "contextTargets": [
+        "visualNarrative",
+        "theoryExplanation"
+      ]
+    }
+  ]
+}
+;
+        
+class SimulationState {
+    constructor(mapSize) {
+        this.mapSize = mapSize;
+        this.currentCenter = { x: mapSize / 2, y: mapSize / 2 };
+        this.currentRadius = mapSize / 2 * 0.9;
+        
+        this.targetCenter = null;
+        this.targetRadius = null;
+
+        this.agents = [];
+        this.tickDamage = 15;
+    }
+
+    addAgent(x, y, id) {
+        this.agents.push({
+            id: id,
+            x: x,
+            y: y,
+            hp: 100,
+            isOutside: false,
+            justDamaged: false
+        });
+    }
+
+    updateAgentStatus() {
+        for (let agent of this.agents) {
+            if (agent.hp <= 0) continue;
+            const dx = agent.x - this.currentCenter.x;
+            const dy = agent.y - this.currentCenter.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            agent.isOutside = dist > this.currentRadius;
+        }
+    }
+}
+
+
+class SimulationRenderer {
+    constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.width = this.canvas.width;
+        this.height = this.canvas.height;
+    }
+
+    render(state, isAnimatingPhase = false) {
+        this.ctx.clearRect(0, 0, this.width, this.height);
+
+        // Draw Map Border
+        this.ctx.strokeStyle = '#333';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(0, 0, this.width, this.height);
+
+        // Draw Magnetic Field (Danger Zone is outside, Safe Zone is inside)
+        // Danger zone visualization (shaded outside the circle)
+        this.ctx.fillStyle = 'rgba(128, 0, 128, 0.2)'; // Purple tint for toxic gas
+        this.ctx.beginPath();
+        this.ctx.rect(0, 0, this.width, this.height);
+        this.ctx.arc(state.currentCenter.x, state.currentCenter.y, state.currentRadius, 0, Math.PI * 2, true);
+        this.ctx.fill();
+
+        // Safe Zone Border
+        this.ctx.strokeStyle = '#00ffcc';
+        this.ctx.lineWidth = 3;
+        this.ctx.beginPath();
+        this.ctx.arc(state.currentCenter.x, state.currentCenter.y, state.currentRadius, 0, Math.PI * 2);
+        this.ctx.stroke();
+
+        // Target Zone Border (if animating)
+        if (state.targetCenter && state.targetRadius) {
+            this.ctx.strokeStyle = 'rgba(0, 255, 204, 0.5)';
+            this.ctx.setLineDash([5, 10]);
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.arc(state.targetCenter.x, state.targetCenter.y, state.targetRadius, 0, Math.PI * 2);
+            this.ctx.stroke();
+            this.ctx.setLineDash([]); // reset dash
+        }
+
+        // Draw Agents
+        for (let agent of state.agents) {
+            if (agent.hp <= 0) {
+                // Draw dead agent
+                this.ctx.fillStyle = '#555';
+                this.ctx.beginPath();
+                this.ctx.arc(agent.x, agent.y, 6, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.fillStyle = '#ff4444';
+                this.ctx.font = '10px Arial';
+                this.ctx.fillText("DEAD", agent.x - 12, agent.y - 10);
+                continue;
+            }
+
+            // Draw alive agent
+            this.ctx.fillStyle = agent.isOutside ? '#ff9999' : '#ffffff';
+            if (agent.justDamaged) {
+                this.ctx.fillStyle = '#ff0000'; // flash red
+            }
+            
+            this.ctx.beginPath();
+            this.ctx.arc(agent.x, agent.y, 8, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.strokeStyle = '#000';
+            this.ctx.lineWidth = 1;
+            this.ctx.stroke();
+
+            // HP Bar
+            this.ctx.fillStyle = '#000';
+            this.ctx.fillRect(agent.x - 10, agent.y - 15, 20, 4);
+            this.ctx.fillStyle = agent.hp > 50 ? '#00ff00' : '#ff0000';
+            this.ctx.fillRect(agent.x - 10, agent.y - 15, 20 * (agent.hp / 100), 4);
+        }
+    }
+}
+
+
+const registry = {
+    entries: new Map(),
+    register(entry) {
+        this.entries.set(entry.entryName, entry);
+    },
+    get(entryName) {
+        if (!this.entries.has(entryName)) {
+            throw new Error(`Entry not found: ${entryName}`);
+        }
+        return this.entries.get(entryName);
+    }
+};
+
+const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+registry.register({
+    entryName: "MagneticField.Initialize",
+    requiredUsage: {
+        purpose: "최초의 자기장 중심점과 최대 반경, 에이전트들의 초기 위치를 설정한다.",
+        preconditions: ["시뮬레이션 상태가 초기화되어 있어야 한다."],
+        inputs: ["mapSize: 맵의 전체 크기", "agentCount: 스폰할 에이전트 수"],
+        outputs: ["초기 자기장 영역 (중심점, 반경)", "생성된 에이전트 배열"],
+        sideEffects: ["화면에 맵 경계, 초기 자기장, 에이전트들이 렌더링된다."],
+        completionCondition: "모든 에이전트가 맵 내에 배치되고 초기 자기장 시각화가 완료됨.",
+        failureConditions: ["맵 크기가 유효하지 않거나 에이전트 수가 0 이하인 경우"]
+    },
+    async execute(runtime) {
+        const { state, renderer } = runtime;
+        
+        // Setup initial agents
+        const agentCount = 8;
+        state.agents = [];
+        for (let i = 0; i < agentCount; i++) {
+            // Random position across the map
+            const x = Math.random() * (state.mapSize - 40) + 20;
+            const y = Math.random() * (state.mapSize - 40) + 20;
+            state.addAgent(x, y, `Agent_${i}`);
+        }
+
+        // Setup initial safe zone
+        state.currentCenter = { x: state.mapSize / 2, y: state.mapSize / 2 };
+        state.currentRadius = state.mapSize * 0.45;
+        state.targetCenter = null;
+        state.targetRadius = null;
+
+        state.updateAgentStatus();
+        
+        // Render and wait briefly for visualization
+        renderer.render(state);
+        await wait(500);
+    }
+});
+
+registry.register({
+    entryName: "MagneticField.CalculateNextPhase",
+    requiredUsage: {
+        purpose: "다음 페이즈의 좁아진 자기장 목표 반경과 새로운 중심점을 계산한다.",
+        preconditions: ["초기 자기장이 존재해야 한다.", "현재 진행 중인 축소 애니메이션이 없어야 한다."],
+        inputs: ["currentRadius: 현재 자기장 반경", "currentCenter: 현재 자기장 중심점", "shrinkFactor: 축소 비율 (예: 0.6)"],
+        outputs: ["targetRadius: 다음 페이즈의 목표 반경", "targetCenter: 다음 페이즈의 목표 중심점"],
+        sideEffects: ["시각적으로 다음 목표 영역이 점선으로 표시되고, 서서히 현재 자기장이 목표를 향해 축소 애니메이션을 재생한다."],
+        completionCondition: "현재 반경과 중심점이 목표 반경과 중심점에 도달하고 애니메이션이 종료됨.",
+        failureConditions: ["현재 반경이 이미 최소 허용치 이하인 경우"]
+    },
+    async execute(runtime) {
+        const { state, renderer } = runtime;
+        
+        // Calculate new target (shrink by 50% and move center randomly within old radius - new target radius)
+        const shrinkFactor = 0.5;
+        state.targetRadius = state.currentRadius * shrinkFactor;
+
+        const maxOffset = state.currentRadius - state.targetRadius;
+        const angle = Math.random() * Math.PI * 2;
+        const dist = Math.random() * maxOffset;
+        
+        state.targetCenter = {
+            x: state.currentCenter.x + Math.cos(angle) * dist,
+            y: state.currentCenter.y + Math.sin(angle) * dist
+        };
+
+        renderer.render(state, true);
+        await wait(500); // show target first
+
+        // Animate shrinking
+        const frames = 60;
+        const dx = (state.targetCenter.x - state.currentCenter.x) / frames;
+        const dy = (state.targetCenter.y - state.currentCenter.y) / frames;
+        const dr = (state.targetRadius - state.currentRadius) / frames;
+
+        for (let i = 0; i < frames; i++) {
+            if (runtime.isPaused) {
+                await runtime.waitWhilePaused();
+            }
+            state.currentCenter.x += dx;
+            state.currentCenter.y += dy;
+            state.currentRadius += dr;
+            state.updateAgentStatus();
+            renderer.render(state, true);
+            await wait(16); // ~60fps
+        }
+
+        // Finalize state
+        state.currentCenter = { ...state.targetCenter };
+        state.currentRadius = state.targetRadius;
+        state.targetCenter = null;
+        state.targetRadius = null;
+        state.updateAgentStatus();
+        renderer.render(state);
+    }
+});
+
+registry.register({
+    entryName: "MagneticField.ApplyDamageToOutsideAgents",
+    requiredUsage: {
+        purpose: "자기장 외곽에 있는 에이전트들을 식별하고 지속적인 틱 데미지를 적용한다.",
+        preconditions: ["자기장 축소가 완료되어 고정된 상태여야 한다."],
+        inputs: ["agents: 현재 에이전트 배열", "currentCenter: 현재 자기장 중심점", "currentRadius: 현재 자기장 반경", "tickDamage: 틱당 감소할 HP량"],
+        outputs: ["변경된 에이전트들의 HP 상태"],
+        sideEffects: ["안전구역 밖에 있는 에이전트들의 색상이 붉게 점멸하고 HP 수치가 깎이는 애니메이션이 출력된다. HP가 0이 되면 파괴 이펙트와 함께 제거 표시가 된다."],
+        completionCondition: "안전구역 외곽에 있는 모든 에이전트에 한 틱의 데미지가 시각적으로 모두 적용됨.",
+        failureConditions: ["에이전트 배열이 비어있는 경우"]
+    },
+    async execute(runtime) {
+        const { state, renderer } = runtime;
+
+        let hasOutside = false;
+        state.updateAgentStatus();
+
+        for (let agent of state.agents) {
+            if (agent.hp <= 0) continue;
+            if (agent.isOutside) {
+                hasOutside = true;
+                agent.justDamaged = true;
+                agent.hp -= state.tickDamage;
+                if (agent.hp < 0) agent.hp = 0;
+            }
+        }
+
+        renderer.render(state);
+
+        if (hasOutside) {
+            await wait(300); // flash duration
+            for (let agent of state.agents) {
+                agent.justDamaged = false;
+            }
+            renderer.render(state);
+            await wait(200);
+        }
+    }
+});
+
+
+        let currentState = 'idle'; // idle, executing, explaining, paused, completed, error
+        let currentPhaseIndex = 0;
+        
+        let simState = new SimulationState(600);
+        let renderer = new SimulationRenderer('sim-canvas');
+        
+        let holdTimer = null;
+        let remainingHoldMs = 0;
+        let holdStartTime = 0;
+
+        let runtime = {
+            state: simState,
+            renderer: renderer,
+            isPaused: false,
+            async waitWhilePaused() {
+                while(this.isPaused) {
+                    await new Promise(r => setTimeout(r, 100));
+                }
+            }
+        };
+
+        const ui = {
+            title: document.getElementById('current-entry-title'),
+            status: document.getElementById('status-bar'),
+            contextContainer: document.getElementById('context-container'),
+            timer: document.getElementById('timer'),
+            timerVal: document.getElementById('timer-val'),
+            btnStart: document.getElementById('btn-start'),
+            btnPause: document.getElementById('btn-pause'),
+            btnResume: document.getElementById('btn-resume'),
+            btnReset: document.getElementById('btn-reset'),
+            btnPrev: document.getElementById('btn-prev'),
+            btnNext: document.getElementById('btn-next')
+        };
+
+        async function loadData() {
+            try {
+                buildContextUI();
+                renderer.render(simState);
+                ui.title.innerText = "준비 완료";
+            } catch (err) {
+                ui.title.innerText = "데이터 로딩 실패!";
+                console.error(err);
+                changeState('error');
+            }
+        }
+
+        function buildContextUI() {
+            ui.contextContainer.innerHTML = '';
+            contextData.contexts.forEach((ctx, i) => {
+                const div = document.createElement('div');
+                div.className = 'context-block';
+                div.id = `ctx-block-${i}`;
+                div.dataset.readerIndex = i;
+
+                div.innerHTML = `
+                    <h2>[${i}] ${ctx.title}</h2>
+                    <p><strong>핵심 목적:</strong> ${ctx.summary}</p>
+                    
+                    <h3>이론적 의미</h3>
+                    <p>${ctx.theoryExplanation}</p>
+
+                    <h3>실행 과정</h3>
+                    <ul>${ctx.executionNarrative.map(n => `<li>${n}</li>`).join('')}</ul>
+
+                    <h3>시각적 변화</h3>
+                    <ul>${ctx.visualNarrative.map(n => `<li>${n}</li>`).join('')}</ul>
+
+                    <h3>입력 데이터</h3>
+                    <div>${ctx.inputs.map(inp => `<span class="tag">${inp}</span>`).join('')}</div>
+                `;
+                ui.contextContainer.appendChild(div);
+            });
+        }
+
+        function changeState(newState) {
+            currentState = newState;
+            ui.status.innerText = `상태: ${currentState}`;
+            
+            ui.btnStart.disabled = newState !== 'idle' && newState !== 'completed';
+            ui.btnPause.disabled = newState !== 'executing' && newState !== 'explaining';
+            ui.btnResume.disabled = newState !== 'paused';
+            ui.btnPrev.disabled = currentPhaseIndex === 0;
+            ui.btnNext.disabled = currentPhaseIndex === syncData.sequence.length - 1;
+        }
+
+        function highlightContext(index) {
+            document.querySelectorAll('.context-block').forEach(el => el.classList.remove('active'));
+            const activeEl = document.getElementById(`ctx-block-${index}`);
+            if (activeEl) {
+                activeEl.classList.add('active');
+                activeEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        async function runSequence() {
+            if (currentState === 'paused') {
+                resumeSequence();
+                return;
+            }
+            if (currentPhaseIndex >= syncData.sequence.length) {
+                changeState('completed');
+                ui.title.innerText = "모든 교육 단계 완료";
+                return;
+            }
+
+            const step = syncData.sequence[currentPhaseIndex];
+            ui.title.innerText = `[${step.index}] ${step.entryName}`;
+            
+            // Execute
+            changeState('executing');
+            const entry = registry.get(step.entryName);
+            await entry.execute(runtime);
+
+            if (currentState === 'paused') return; // Wait until resumed
+
+            // Explain
+            changeState('explaining');
+            highlightContext(currentPhaseIndex);
+            
+            await doExplainWait(step.holdMs);
+
+            if (currentState === 'paused') return; 
+
+            // Next
+            currentPhaseIndex++;
+            document.querySelectorAll('.context-block').forEach(el => el.classList.remove('active'));
+            runSequence();
+        }
+
+        async function doExplainWait(ms) {
+            remainingHoldMs = ms;
+            ui.timer.style.display = 'block';
+            
+            return new Promise(resolve => {
+                const tick = () => {
+                    if (currentState === 'paused') {
+                        setTimeout(tick, 100);
+                        return;
+                    }
+                    if (remainingHoldMs <= 0) {
+                        ui.timer.style.display = 'none';
+                        resolve();
+                        return;
+                    }
+                    ui.timerVal.innerText = (remainingHoldMs / 1000).toFixed(1);
+                    remainingHoldMs -= 100;
+                    setTimeout(tick, 100);
+                };
+                tick();
+            });
+        }
+
+        function pauseSequence() {
+            if (currentState === 'executing' || currentState === 'explaining') {
+                runtime.isPaused = true;
+                changeState('paused');
+            }
+        }
+
+        function resumeSequence() {
+            if (currentState === 'paused') {
+                runtime.isPaused = false;
+                // We return to previous state logically (the loops will just continue)
+                changeState('executing'); // simplistic restore, actual restore handled by loops continuing
+            }
+        }
+
+        function resetSequence() {
+            currentPhaseIndex = 0;
+            simState = new SimulationState(600);
+            runtime.state = simState;
+            runtime.isPaused = false;
+            remainingHoldMs = 0;
+            ui.timer.style.display = 'none';
+            document.querySelectorAll('.context-block').forEach(el => el.classList.remove('active'));
+            renderer.render(simState);
+            ui.title.innerText = "준비 완료";
+            changeState('idle');
+        }
+
+        // Event Listeners
+        ui.btnStart.onclick = () => {
+            if (currentState === 'idle' || currentState === 'completed') {
+                resetSequence();
+                runSequence();
+            }
+        };
+        ui.btnPause.onclick = pauseSequence;
+        ui.btnResume.onclick = resumeSequence;
+        ui.btnReset.onclick = resetSequence;
+
+        // Initialize
+        window.onload = loadData;
+
+    </script>
+</body>
+</html>
