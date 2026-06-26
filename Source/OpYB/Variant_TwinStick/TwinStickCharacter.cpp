@@ -231,6 +231,12 @@ void ATwinStickCharacter::DoDash()
 
 	// launch the character in the chosen direction
 	LaunchCharacter(LaunchDir * DashImpulse, true, true);
+
+	// Play roll montage
+	if (RollMontage)
+	{
+		PlayAnimMontage(RollMontage);
+	}
 }
 
 void ATwinStickCharacter::DoShoot()

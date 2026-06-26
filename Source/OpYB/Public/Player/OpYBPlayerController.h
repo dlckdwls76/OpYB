@@ -41,6 +41,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
 	TObjectPtr<UInputAction> ShootAction;
 
+	/** Roll Input Action (Spacebar) */
+//	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
+//	TObjectPtr<UInputAction> RollAction;
+
 public:
 
 	/** Constructor */
@@ -63,6 +67,9 @@ protected:
 
 	/** Called for shoot input */
 	void Shoot();
+
+	/** Called for roll input */
+//	void DoRoll();
 
 	/** Server RPC for syncing rotation */
 	UFUNCTION(Server, Unreliable, WithValidation)

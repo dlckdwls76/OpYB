@@ -6,6 +6,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Engine/StaticMesh.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 AOpYBProjectile::AOpYBProjectile()
@@ -122,9 +123,10 @@ void AOpYBProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor
 	// 그 외의 캐릭터(적 등)에 겹쳤다면
 	if (HasAuthority())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Projectile hit Enemy: %s, Destroying."), *OtherActor->GetName());
+		UE_LOG(LogTemp, Warning, TEXT("Projectile hit Enemy: %s, Applying Damage."), *OtherActor->GetName());
 
-		// TODO: 적에게 데미지 입히기 로직 추가
+		// 데미지 입히기 (기본값 25.0f)
+		UGameplayStatics::ApplyDamage(OtherActor, 25.0f, GetInstigatorController(), this, UDamageType::StaticClass());
 
 		Destroy();
 	}

@@ -120,6 +120,10 @@ protected:
 	/** Timer to handle stick autofire */
 	FTimerHandle AutoFireTimer;
 
+	/** Montage to play when dashing */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Animation")
+	class UAnimMontage* RollMontage;
+
 public:
 	
 	/** Constructor */
