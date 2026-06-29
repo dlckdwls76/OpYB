@@ -35,6 +35,10 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UWidgetComponent> OverheadUIComponent;
 
+	/** 궁극기 궤적을 보여줄 컴포넌트 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UStaticMeshComponent> UltimateTrajectoryMesh;
+
 public:
 
 	/** Constructor */
@@ -42,6 +46,7 @@ public:
 
 	/** Initialization */
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	/** Network Replication */
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -115,14 +120,6 @@ public:
 	UFUNCTION()
 	void OnRep_IsDead();
 
-	/** 데스 스크린 UI 클래스 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
-	TSubclassOf<UOpYBDeathScreenWidget> DeathScreenClass;
-
-	/** 생성된 데스 스크린 인스턴스 */
-	UPROPERTY()
-	TObjectPtr<UOpYBDeathScreenWidget> DeathScreenInstance;
-
 	/** 남은 부활 시간 (클라이언트 UI 표시용) */
 	float RespawnTimeLeft;
 
@@ -153,5 +150,41 @@ public:
 
 	/** 한 발 충전 완료 시 호출될 함수 (서버용) */
 	void RechargeAmmo();
+
+	// ==========================================
+	// 궁극기 관련 기능
+	// ==========================================
+
+	/** 궁극기 발사에 사용할 투사체 클래스 */
+	UPROPERTY(EditDefaultsOnly, Category = "Projectile|Ultimate")
+	TSubclassOf<class AOpYBUltimateProjectile> UltimateProjectileClass;
+
+	/** 궁극기 사용을 위한 현재 명중 횟수 (최대 3) */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Combat|Ultimate")
+	int32 UltimateHitCount = 0;
+
+	/** 궁극기 사용 가능 여부 */
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Combat|Ultimate")
+	bool bIsUltimateReady = false;
+
+	/** 궁극기 조준 상태 여부 */
+	UPROPERTY(BlueprintReadOnly, Category = "Combat|Ultimate")
+	bool bIsAimingUltimate = false;
+
+	/** 적 명중 시 횟수 증가 (서버 전용) */
+	UFUNCTION(BlueprintCallable, Category = "Combat|Ultimate")
+	void AddUltimateHit();
+
+	/** R키 눌렀을 때 조준 상태 토글 (로컬) */
+	UFUNCTION(BlueprintCallable, Category = "Combat|Ultimate")
+	void ToggleUltimateAim();
+
+	/** 궁극기 발사 시도 (로컬) */
+	UFUNCTION(BlueprintCallable, Category = "Combat|Ultimate")
+	void FireUltimate();
+
+	/** 궁극기 발사 서버 RPC */
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerFireUltimate(FVector SpawnLocation, FRotator SpawnRotation);
 
 };

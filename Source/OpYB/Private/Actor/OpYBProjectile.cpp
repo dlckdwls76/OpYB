@@ -7,6 +7,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Engine/StaticMesh.h"
 #include "Kismet/GameplayStatics.h"
+#include "Character/OpYBCharacter.h"
 
 // Sets default values
 AOpYBProjectile::AOpYBProjectile()
@@ -127,6 +128,12 @@ void AOpYBProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor
 
 		// 데미지 입히기 (기본값 25.0f)
 		UGameplayStatics::ApplyDamage(OtherActor, 25.0f, GetInstigatorController(), this, UDamageType::StaticClass());
+
+		// 궁극기 게이지 충전
+		if (AOpYBCharacter* InstigatorPawn = Cast<AOpYBCharacter>(GetInstigator()))
+		{
+			InstigatorPawn->AddUltimateHit();
+		}
 
 		Destroy();
 	}

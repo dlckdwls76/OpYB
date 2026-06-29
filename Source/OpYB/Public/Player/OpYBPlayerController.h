@@ -10,7 +10,6 @@ class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
 class UNiagaraSystem;
-class UOpYBAimCursorWidget;
 
 /**
  *  Player controller for a top-down perspective game.
@@ -42,17 +41,13 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
 	TObjectPtr<UInputAction> ShootAction;
 
+	/** Ultimate Input Action (R Key) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> UltimateAction;
+
 	/** Roll Input Action (Spacebar) */
-//	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
-//	TObjectPtr<UInputAction> RollAction;
-
-	/** Custom dynamic aim cursor class */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="UI")
-	TSubclassOf<UOpYBAimCursorWidget> AimCursorClass;
-
-	/** Instance of the custom aim cursor */
-	UPROPERTY()
-	TObjectPtr<UOpYBAimCursorWidget> AimCursorInstance;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> RollAction;
 
 public:
 
@@ -77,8 +72,11 @@ protected:
 	/** Called for shoot input */
 	void Shoot();
 
+	/** Called for ultimate action input */
+	void OnUltimateAction();
+
 	/** Called for roll input */
-//	void DoRoll();
+	void DoRoll();
 
 	/** Server RPC for syncing rotation */
 	UFUNCTION(Server, Unreliable, WithValidation)

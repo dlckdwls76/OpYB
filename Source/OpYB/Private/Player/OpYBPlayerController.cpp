@@ -11,7 +11,7 @@
 #include "InputAction.h"
 #include "InputModifiers.h"
 #include "Engine/LocalPlayer.h"
-#include "UI/OpYBAimCursorWidget.h"
+#include "UI/OpYBHUD.h"
 #include "OpYB.h"
 
 AOpYBPlayerController::AOpYBPlayerController()
@@ -34,16 +34,6 @@ void AOpYBPlayerController::BeginPlay()
 		// 위젯이 키보드 포커스를 뺏어가는 것을 방지 (사격 전 이동 불가 버그 수정)
 		FInputModeGameOnly InputMode;
 		SetInputMode(InputMode);
-
-		// 다이내믹 에임 커서 위젯 생성
-		if (AimCursorClass)
-		{
-			AimCursorInstance = CreateWidget<UOpYBAimCursorWidget>(this, AimCursorClass);
-			if (AimCursorInstance)
-			{
-				AimCursorInstance->AddToViewport(100); // 100 Z-order로 항상 맨 위에 띄움
-			}
-		}
 
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 		{
@@ -81,11 +71,17 @@ void AOpYBPlayerController::SetupInputComponent()
 				EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Triggered, this, &AOpYBPlayerController::Shoot);
 			}
 
+			// 궁극기 입력 (R키)
+			if (UltimateAction)
+			{
+				EnhancedInputComponent->BindAction(UltimateAction, ETriggerEvent::Started, this, &AOpYBPlayerController::OnUltimateAction);
+			}
+
 			// Setup roll input (스페이스바)
-//			if (RollAction)
-//			{
-//				EnhancedInputComponent->BindAction(RollAction, ETriggerEvent::Triggered, this, &AOpYBPlayerController::DoRoll);
-//			}
+			if (RollAction)
+			{
+				EnhancedInputComponent->BindAction(RollAction, ETriggerEvent::Triggered, this, &AOpYBPlayerController::DoRoll);
+			}
 
 			UE_LOG(LogTemp, Warning, TEXT("Successfully bound Input Actions."));
 		}
@@ -100,10 +96,10 @@ void AOpYBPlayerController::Tick(float DeltaTime)
 	if (AOpYBCharacter* ControlledPawn = Cast<AOpYBCharacter>(GetPawn()))
 	{
 		// 구르기 중에는 회전하지 않음
-//		if (ControlledPawn->IsRolling())
-//		{
-//			return;
-//		}
+		if (ControlledPawn->IsRolling())
+		{
+			return;
+		}
 
 		FVector WorldLocation, WorldDirection;
 		// 화면의 마우스 2D 좌표를 3D 공간의 레이(Ray)로 변환
@@ -140,7 +136,7 @@ void AOpYBPlayerController::MoveForward(const FInputActionValue& Value)
 	float MovementValue = Value.Get<float>();
 	if (AOpYBCharacter* ControlledPawn = Cast<AOpYBCharacter>(GetPawn()))
 	{
-//		if (ControlledPawn->IsRolling()) return; // 구르기 중 이동 불가
+		if (ControlledPawn->IsRolling()) return; // 구르기 중 이동 불가
 
 		// 12시 방향 (World +X)
 		ControlledPawn->AddMovementInput(FVector(1.f, 0.f, 0.f), MovementValue, false);
@@ -152,7 +148,7 @@ void AOpYBPlayerController::MoveRight(const FInputActionValue& Value)
 	float MovementValue = Value.Get<float>();
 	if (AOpYBCharacter* ControlledPawn = Cast<AOpYBCharacter>(GetPawn()))
 	{
-//		if (ControlledPawn->IsRolling()) return; // 구르기 중 이동 불가
+		if (ControlledPawn->IsRolling()) return; // 구르기 중 이동 불가
 
 		// 3시 방향 (World +Y)
 		ControlledPawn->AddMovementInput(FVector(0.f, 1.f, 0.f), MovementValue, false);
@@ -164,18 +160,34 @@ void AOpYBPlayerController::Shoot()
 	UE_LOG(LogTemp, Warning, TEXT("1. [PlayerController] 마우스 클릭 감지됨!"));
 	if (AOpYBCharacter* ControlledCharacter = Cast<AOpYBCharacter>(GetPawn()))
 	{
-//		if (ControlledCharacter->IsRolling()) return; // 구르기 중 사격 불가
-		ControlledCharacter->AttemptShoot();
-
-		// 사격 시 에임 반동 애니메이션
-		if (AimCursorInstance)
+		if (ControlledCharacter->IsRolling()) return; // 구르기 중 사격 불가
+		
+		if (ControlledCharacter->bIsAimingUltimate)
 		{
-			AimCursorInstance->PlayShootAnimation();
+			ControlledCharacter->FireUltimate();
+		}
+		else
+		{
+			ControlledCharacter->AttemptShoot();
+
+			// 사격 시 에임 반동 애니메이션 (HUD에 요청)
+			if (AOpYBHUD* HUD = Cast<AOpYBHUD>(GetHUD()))
+			{
+				HUD->PlayShootAnimation();
+			}
 		}
 	}
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("X. [PlayerController] 조종 중인 캐릭터를 찾을 수 없습니다!"));
+	}
+}
+
+void AOpYBPlayerController::OnUltimateAction()
+{
+	if (AOpYBCharacter* ControlledCharacter = Cast<AOpYBCharacter>(GetPawn()))
+	{
+		ControlledCharacter->ToggleUltimateAim();
 	}
 }
 
@@ -192,10 +204,11 @@ void AOpYBPlayerController::ServerSetPawnRotation_Implementation(FRotator NewRot
 	}
 }
 
-//void AOpYBPlayerController::DoRoll()
-//{
-//	if (AOpYBCharacter* ControlledCharacter = Cast<AOpYBCharacter>(GetPawn()))
-//	{
-//		ControlledCharacter->PlayRollMontage();
-//	}
-//}
+void AOpYBPlayerController::DoRoll()
+{
+	if (AOpYBCharacter* ControlledCharacter = Cast<AOpYBCharacter>(GetPawn()))
+	{
+		ControlledCharacter->PlayRollMontage();
+	}
+}
+
