@@ -40,12 +40,40 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	float DamageAmount = 50.0f;
 
+	/** Explosion radius */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	float ExplosionRadius = 500.0f;
+
 	/** Knockback strength applied to enemies hit */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
-	float KnockbackStrength = 500.0f;
+	float KnockbackStrength = 2000.0f;
+
+	/** Explosion particle effect */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects")
+	TObjectPtr<class UParticleSystem> ExplosionEffect;
+
+	/** Danger zone decal */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Replicated, Category = "Components")
+	TObjectPtr<class UDecalComponent> DangerZoneDecal;
+
+	/** Target location for the projectile to land */
+	UPROPERTY(BlueprintReadWrite, Replicated, Category = "Combat", meta = (ExposeOnSpawn="true"))
+	FVector TargetLocation;
+
+	/** Function called when the projectile hits something (floor/wall) */
+	UFUNCTION()
+	void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
 	/** Function called when the projectile overlaps a pawn (like enemies) */
 	UFUNCTION()
 	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	/** Explosion handling - replicated on all clients */
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastExplode();
+
+	/** Destroy projectile on all clients */
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastDestroy();
 
 };

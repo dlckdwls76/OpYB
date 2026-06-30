@@ -16,3 +16,5 @@ Saved/
 *.ds_store
 *.patch
 *_BuiltData.uasset
+Build/Windows/
+

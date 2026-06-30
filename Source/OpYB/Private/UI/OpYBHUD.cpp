@@ -2,6 +2,7 @@
 #include "UI/OpYBAimCursorWidget.h"
 #include "UI/OpYBPlayerCountWidget.h"
 #include "UI/OpYBDeathScreenWidget.h"
+#include "UI/OpYBUltimateWidget.h"
 
 void AOpYBHUD::BeginPlay()
 {
@@ -28,10 +29,23 @@ void AOpYBHUD::BeginPlay()
 			PlayerCountInstance->AddToViewport();
 		}
 	}
+
+	if (UltimateGaugeClass)
+	{
+		UltimateGaugeInstance = CreateWidget<UOpYBUltimateWidget>(GetWorld(), UltimateGaugeClass);
+		if (UltimateGaugeInstance)
+		{
+			UltimateGaugeInstance->AddToViewport();
+		}
+	}
 }
 
 void AOpYBHUD::ShowDeathScreen()
 {
+	// 전투 UI 숨기기
+	if (AimCursorInstance) AimCursorInstance->SetVisibility(ESlateVisibility::Hidden);
+	if (UltimateGaugeInstance) UltimateGaugeInstance->SetVisibility(ESlateVisibility::Hidden);
+
 	if (DeathScreenClass && !DeathScreenInstance)
 	{
 		DeathScreenInstance = CreateWidget<UOpYBDeathScreenWidget>(GetWorld(), DeathScreenClass);
@@ -48,6 +62,10 @@ void AOpYBHUD::ShowDeathScreen()
 
 void AOpYBHUD::HideDeathScreen()
 {
+	// 전투 UI 다시 표시하기
+	if (AimCursorInstance) AimCursorInstance->SetVisibility(ESlateVisibility::Visible);
+	if (UltimateGaugeInstance) UltimateGaugeInstance->SetVisibility(ESlateVisibility::Visible);
+
 	if (DeathScreenInstance)
 	{
 		DeathScreenInstance->RemoveFromParent();
@@ -68,5 +86,21 @@ void AOpYBHUD::UpdateDeathScreenTime(float TimeLeft)
 	if (DeathScreenInstance)
 	{
 		DeathScreenInstance->UpdateTimeLeft(FMath::CeilToInt(TimeLeft));
+	}
+}
+
+void AOpYBHUD::UpdateUltGauge(int32 CurrentCharge, int32 MaxCharge)
+{
+	if (UltimateGaugeInstance)
+	{
+		UltimateGaugeInstance->UpdateUltGauge(CurrentCharge, MaxCharge);
+	}
+}
+
+void AOpYBHUD::SetAimMode(bool bIsUltMode)
+{
+	if (AimCursorInstance)
+	{
+		AimCursorInstance->SetAimMode(bIsUltMode);
 	}
 }

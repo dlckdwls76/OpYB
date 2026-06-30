@@ -7,6 +7,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Engine/StaticMesh.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/GameplayStatics.h"
 #include "Character/OpYBCharacter.h"
 
 // Sets default values
@@ -47,7 +48,8 @@ AOpYBProjectile::AOpYBProjectile()
 	if (SphereMeshAsset.Succeeded())
 	{
 		MeshComp->SetStaticMesh(SphereMeshAsset.Object);
-		MeshComp->SetRelativeScale3D(FVector(0.3f, 0.3f, 0.3f)); // Scale it down
+		// 블루프린트에서 크기를 자유롭게 조절할 수 있도록 C++의 강제 스케일 고정 코드를 삭제했습니다.
+		// MeshComp->SetRelativeScale3D(FVector(0.3f, 0.3f, 0.3f));
 	}
 
 	// Use a ProjectileMovementComponent to govern this projectile's movement
@@ -124,10 +126,10 @@ void AOpYBProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor
 	// 그 외의 캐릭터(적 등)에 겹쳤다면
 	if (HasAuthority())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Projectile hit Enemy: %s, Applying Damage."), *OtherActor->GetName());
+		UE_LOG(LogTemp, Warning, TEXT("Projectile hit Enemy: %s, Dealing %f Damage."), *OtherActor->GetName(), Damage);
 
-		// 데미지 입히기 (기본값 25.0f)
-		UGameplayStatics::ApplyDamage(OtherActor, 25.0f, GetInstigatorController(), this, UDamageType::StaticClass());
+		// 적에게 데미지 입히기 로직 실행 (서버 권한)
+		UGameplayStatics::ApplyDamage(OtherActor, Damage, GetInstigatorController(), this, UDamageType::StaticClass());
 
 		// 궁극기 게이지 충전
 		if (AOpYBCharacter* InstigatorPawn = Cast<AOpYBCharacter>(GetInstigator()))

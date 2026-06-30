@@ -19,6 +19,10 @@ public:
 	/** Called when the player shoots */
 	void PlayShootAnimation();
 
+	/** Sets the aim mode (ultimate or normal) */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Aim")
+	void SetAimMode(bool bIsUltMode);
+
 protected:
 	/** Current animated scale of the crosshair */
 	float CurrentScale = 1.0f;

@@ -41,7 +41,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
 	TObjectPtr<UInputAction> ShootAction;
 
-	/** Ultimate Input Action (R Key) */
+	/** 궁극기 토글 입력 액션 (R키) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
 	TObjectPtr<UInputAction> UltimateAction;
 
@@ -69,8 +69,14 @@ protected:
 	void MoveForward(const FInputActionValue& Value);
 	void MoveRight(const FInputActionValue& Value);
 
-	/** Called for shoot input */
+	/** Input handler for shooting */
 	void Shoot();
+
+	/** 궁극기 토글 함수 */
+	void ToggleUltimate();
+
+	/** 궁극기 모드 켜져있는지 여부 */
+	bool bIsUltReadyMode = false;
 
 	/** Called for ultimate action input */
 	void OnUltimateAction();

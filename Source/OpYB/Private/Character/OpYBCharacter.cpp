@@ -7,6 +7,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "UI/OpYBHUD.h"
 #include "UI/OpYBOverheadWidget.h"
+#include "UI/OpYBUltimateWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerStart.h"
 #include "GameFramework/PlayerController.h"
@@ -67,18 +68,14 @@ AOpYBCharacter::AOpYBCharacter()
 	OverheadUIComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("OverheadUI"));
 	OverheadUIComponent->SetupAttachment(RootComponent);
 	OverheadUIComponent->SetRelativeLocation(FVector(0.f, 0.f, 120.f));
-	OverheadUIComponent->SetWidgetSpace(EWidgetSpace::Screen);
-	OverheadUIComponent->SetDrawSize(FVector2D(100.f, 20.f));
+	OverheadUIComponent->SetWidgetSpace(EWidgetSpace::Screen); // 화면을 항상 바라보게 설정
+	OverheadUIComponent->SetDrawSize(FVector2D(150.0f, 60.0f));
+	OverheadUIComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 120.0f)); // 캐릭터 머리 위로 올림
 
-	// 궁극기 궤적 메쉬 초기화
-	UltimateTrajectoryMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("UltimateTrajectoryMesh"));
-	UltimateTrajectoryMesh->SetupAttachment(RootComponent);
-	UltimateTrajectoryMesh->SetCollisionProfileName(TEXT("NoCollision"));
-	UltimateTrajectoryMesh->bOnlyOwnerSee = true; // 소유자에게만 보임
-	UltimateTrajectoryMesh->SetVisibility(false); // 기본적으로 숨김
-	UltimateTrajectoryMesh->SetRelativeScale3D(FVector(10.0f, 1.0f, 1.0f)); // X축(앞)으로 10배 길게 (임시 궤적)
-	UltimateTrajectoryMesh->SetRelativeLocation(FVector(500.0f, 0.0f, -85.0f)); // 캐릭터 앞쪽 바닥
+	MaxUltCharge = 3;
+	CurrentUltCharge = 0;
 
+	// Removed UltimateTrajectoryMesh
 	// ==========================================
 	// 초기 스탯 설정
 	// ==========================================
@@ -98,10 +95,12 @@ void AOpYBCharacter::BeginPlay()
 	LocalReloadProgress = 0.0f;
 	bIsDead = false;
 	RespawnTimeLeft = 0.0f;
+	if (HasAuthority()) CurrentUltCharge = 0;
 
 	// 로컬 환경(서버/클라이언트 모두)에서 시작 시 UI 동기화를 위해 한 번 호출
 	OnRep_CurrentHealth();
 	OnRep_CurrentAmmo();
+	OnRep_CurrentUltCharge();
 
 	if (HasAuthority())
 	{
@@ -132,6 +131,7 @@ void AOpYBCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(AOpYBCharacter, CurrentHealth);
 	DOREPLIFETIME(AOpYBCharacter, CurrentAmmo);
 	DOREPLIFETIME(AOpYBCharacter, bIsDead);
+	DOREPLIFETIME(AOpYBCharacter, CurrentUltCharge);
 	DOREPLIFETIME(AOpYBCharacter, UltimateHitCount);
 	DOREPLIFETIME(AOpYBCharacter, bIsUltimateReady);
 }
@@ -201,9 +201,16 @@ bool AOpYBCharacter::IsRolling() const
 	return false;
 }
 
-void AOpYBCharacter::AttemptShoot()
+void AOpYBCharacter::AttemptShoot(bool bIsUltimate)
 {
 	if (bIsDead) return;
+
+	// 조준 상태이거나 궁극기 발사 요청인 경우 궁극기 발사 로직으로 연결
+	if (bIsAimingUltimate || bIsUltimate)
+	{
+		FireUltimate();
+		return;
+	}
 
 	float CurrentTime = GetWorld()->GetTimeSeconds();
 
@@ -234,7 +241,7 @@ void AOpYBCharacter::AttemptShoot()
 		FRotator SpawnRotation = GetActorRotation();
 		
 		// ServerRPC 호출하여 서버에서 총알 생성 및 실제 탄약 소모 처리
-		ServerShoot(SpawnLocation, SpawnRotation);
+		ServerShoot(SpawnLocation, SpawnRotation, bIsUltimate);
 	}
 	else if (CurrentAmmo <= 0)
 	{
@@ -266,14 +273,14 @@ void AOpYBCharacter::RechargeAmmo()
 	}
 }
 
-bool AOpYBCharacter::ServerShoot_Validate(FVector SpawnLocation, FRotator SpawnRotation)
+bool AOpYBCharacter::ServerShoot_Validate(FVector SpawnLocation, FRotator SpawnRotation, bool bIsUltimate)
 {
 	return true;
 }
 
-void AOpYBCharacter::ServerShoot_Implementation(FVector SpawnLocation, FRotator SpawnRotation)
+void AOpYBCharacter::ServerShoot_Implementation(FVector SpawnLocation, FRotator SpawnRotation, bool bIsUltimate)
 {
-	UE_LOG(LogTemp, Warning, TEXT("4. [Server] 서버에서 스폰 요청 받음!"));
+	UE_LOG(LogTemp, Warning, TEXT("4. [Server] 서버에서 스폰 요청 받음! 궁극기 여부: %s"), bIsUltimate ? TEXT("True") : TEXT("False"));
 
 	if (ProjectileClass)
 	{
@@ -286,6 +293,7 @@ void AOpYBCharacter::ServerShoot_Implementation(FVector SpawnLocation, FRotator 
 			// 생성을 완료하며 물리 엔진에 등록
 			Proj->FinishSpawning(SpawnTransform);
 			UE_LOG(LogTemp, Warning, TEXT("5. [Server] 총알 최종 스폰 완료!"));
+
 			// 총알 소모 처리 및 UI 업데이트 호출 (서버 권한)
 			if (CurrentAmmo > 0)
 			{
@@ -352,6 +360,20 @@ float AOpYBCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& 
 	if (HasAuthority())
 	{
 		CurrentHealth -= ActualDamage;
+
+		// 공격자(Instigator) 찾아서 궁극기 채워주기
+		if (EventInstigator)
+		{
+			if (AOpYBCharacter* Attacker = Cast<AOpYBCharacter>(EventInstigator->GetPawn()))
+			{
+				// 자기 자신을 쏜 게 아니면
+				if (Attacker != this)
+				{
+					Attacker->AddUltCharge();
+				}
+			}
+		}
+
 		if (CurrentHealth <= 0.0f)
 		{
 			CurrentHealth = 0.0f;
@@ -370,6 +392,8 @@ void AOpYBCharacter::Die()
 	bIsDead = true;
 	OnRep_IsDead(); // 서버 호스트용 직접 호출
 	
+	ResetUltCharge(); // 죽으면 게이지 0으로 초기화
+
 	if (AOpYBGameState* GS = GetWorld()->GetGameState<AOpYBGameState>())
 	{
 		GS->RemoveAlivePlayer();
@@ -396,9 +420,11 @@ void AOpYBCharacter::Respawn()
 	CurrentHealth = MaxHealth;
 	CurrentAmmo = MaxAmmo;
 	LastAmmoCount = MaxAmmo;
+	if (HasAuthority()) CurrentUltCharge = 0;
 	
 	OnRep_CurrentHealth();
 	OnRep_CurrentAmmo();
+	OnRep_CurrentUltCharge();
 
 	bIsDead = false;
 	OnRep_IsDead(); // 서버 호스트용 직접 호출
@@ -450,6 +476,40 @@ void AOpYBCharacter::OnRep_IsDead()
 	}
 }
 
+void AOpYBCharacter::AddUltCharge()
+{
+	if (!HasAuthority()) return;
+
+	if (CurrentUltCharge < MaxUltCharge)
+	{
+		CurrentUltCharge++;
+		OnRep_CurrentUltCharge(); // 서버 권한 로컬 갱신
+	}
+}
+
+void AOpYBCharacter::OnRep_CurrentUltCharge()
+{
+	if (IsLocallyControlled())
+	{
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			if (AOpYBHUD* HUD = Cast<AOpYBHUD>(PC->GetHUD()))
+			{
+				HUD->UpdateUltGauge(CurrentUltCharge, MaxUltCharge);
+			}
+		}
+	}
+}
+
+void AOpYBCharacter::ResetUltCharge()
+{
+	if (HasAuthority())
+	{
+		CurrentUltCharge = 0;
+		OnRep_CurrentUltCharge();
+	}
+}
+
 // ==========================================
 // 궁극기 관련 기능 구현
 // ==========================================
@@ -476,68 +536,85 @@ void AOpYBCharacter::ToggleUltimateAim()
 	// 로컬 플레이어만 조작 가능해야 함
 	if (IsLocallyControlled())
 	{
-		if (bIsUltimateReady && !bIsDead)
+		if (CanUseUltimate() && !bIsDead)
 		{
 			bIsAimingUltimate = !bIsAimingUltimate;
-			if (UltimateTrajectoryMesh)
-			{
-				UltimateTrajectoryMesh->SetVisibility(bIsAimingUltimate);
-			}
 			UE_LOG(LogTemp, Warning, TEXT("궁극기 조준 상태: %s"), bIsAimingUltimate ? TEXT("ON") : TEXT("OFF"));
 		}
-		else if (!bIsUltimateReady)
+		else if (!CanUseUltimate())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("궁극기 게이지가 부족합니다. (현재: %d/3)"), UltimateHitCount);
+			UE_LOG(LogTemp, Warning, TEXT("궁극기 게이지가 부족합니다. (현재: %d/%d)"), CurrentUltCharge, MaxUltCharge);
 		}
 	}
 }
 
 void AOpYBCharacter::FireUltimate()
 {
-	if (bIsDead || !bIsUltimateReady || !bIsAimingUltimate) return;
+	if (bIsDead || !CanUseUltimate()) return;
 
 	if (UltimateProjectileClass != nullptr)
 	{
-		FVector SpawnLocation = GetActorLocation() + GetActorForwardVector() * 100.0f; // 약간 앞에서 스폰
-		FRotator SpawnRotation = GetActorRotation();
-
-		// 조준 상태 해제 및 궤적 숨김
-		bIsAimingUltimate = false;
-		if (UltimateTrajectoryMesh)
+		FVector TargetLoc = FVector::ZeroVector;
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
 		{
-			UltimateTrajectoryMesh->SetVisibility(false);
+			FVector WorldLocation, WorldDirection;
+			if (PC->DeprojectMousePositionToWorld(WorldLocation, WorldDirection))
+			{
+				float PlaneZ = GetActorLocation().Z;
+				if (FMath::Abs(WorldDirection.Z) > KINDA_SMALL_NUMBER)
+				{
+					float t = (PlaneZ - WorldLocation.Z) / WorldDirection.Z;
+					TargetLoc = WorldLocation + WorldDirection * t;
+				}
+			}
 		}
 
+		if (TargetLoc.IsNearlyZero())
+		{
+			TargetLoc = GetActorLocation() + GetActorForwardVector() * 1000.0f;
+		}
+
+		// 조준 상태 해제
+		bIsAimingUltimate = false;
+
 		// 서버로 발사 요청
-		ServerFireUltimate(SpawnLocation, SpawnRotation);
+		ServerFireUltimate(TargetLoc);
 	}
 }
 
-bool AOpYBCharacter::ServerFireUltimate_Validate(FVector SpawnLocation, FRotator SpawnRotation)
+bool AOpYBCharacter::ServerFireUltimate_Validate(FVector TargetLocation)
 {
 	return true;
 }
 
-void AOpYBCharacter::ServerFireUltimate_Implementation(FVector SpawnLocation, FRotator SpawnRotation)
+void AOpYBCharacter::ServerFireUltimate_Implementation(FVector TargetLocation)
 {
 	// 궁극기가 준비되어 있는지 다시 한번 확인 (치팅 방지)
-	if (!bIsUltimateReady || bIsDead) return;
+	if (!CanUseUltimate() || bIsDead) return;
 
 	if (UltimateProjectileClass != nullptr)
 	{
 		UWorld* World = GetWorld();
 		if (World != nullptr)
 		{
+			// 캐릭터 몸체(캡슐)에 부딪혀서 제자리에 걸리는 것을 막기 위해 캐릭터 앞쪽+위쪽으로 넉넉히 띄워서 스폰
+			FVector SpawnLocation = GetActorLocation() + GetActorForwardVector() * 150.0f + FVector(0.f, 0.f, 100.f);
+			FRotator SpawnRotation = GetActorRotation();
+
 			FActorSpawnParameters ActorSpawnParams;
 			ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 			ActorSpawnParams.Instigator = this;
 
-			// 투사체 생성
-			World->SpawnActor<AOpYBUltimateProjectile>(UltimateProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+			// 투사체 지연 생성 (TargetLocation 주입 후 최종 생성)
+			AOpYBUltimateProjectile* Proj = World->SpawnActorDeferred<AOpYBUltimateProjectile>(UltimateProjectileClass, FTransform(SpawnRotation, SpawnLocation), nullptr, this, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+			if (Proj)
+			{
+				Proj->TargetLocation = TargetLocation;
+				Proj->FinishSpawning(FTransform(SpawnRotation, SpawnLocation));
+			}
 
 			// 스택 초기화
-			UltimateHitCount = 0;
-			bIsUltimateReady = false;
+			ResetUltCharge();
 			
 			UE_LOG(LogTemp, Warning, TEXT("[Server] 궁극기 발사!"));
 		}

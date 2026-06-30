@@ -74,7 +74,7 @@ void AOpYBPlayerController::SetupInputComponent()
 			// 궁극기 입력 (R키)
 			if (UltimateAction)
 			{
-				EnhancedInputComponent->BindAction(UltimateAction, ETriggerEvent::Started, this, &AOpYBPlayerController::OnUltimateAction);
+				EnhancedInputComponent->BindAction(UltimateAction, ETriggerEvent::Started, this, &AOpYBPlayerController::ToggleUltimate);
 			}
 
 			// Setup roll input (스페이스바)
@@ -160,26 +160,45 @@ void AOpYBPlayerController::Shoot()
 	UE_LOG(LogTemp, Warning, TEXT("1. [PlayerController] 마우스 클릭 감지됨!"));
 	if (AOpYBCharacter* ControlledCharacter = Cast<AOpYBCharacter>(GetPawn()))
 	{
-		if (ControlledCharacter->IsRolling()) return; // 구르기 중 사격 불가
-		
-		if (ControlledCharacter->bIsAimingUltimate)
-		{
-			ControlledCharacter->FireUltimate();
-		}
-		else
-		{
-			ControlledCharacter->AttemptShoot();
+		//		if (ControlledCharacter->IsRolling()) return; // 구르기 중 사격 불가
+		ControlledCharacter->AttemptShoot(bIsUltReadyMode);
 
-			// 사격 시 에임 반동 애니메이션 (HUD에 요청)
+		// 궁극기 모드에서 쐈다면 즉시 모드 해제 및 에임 복구
+		if (bIsUltReadyMode)
+		{
+			bIsUltReadyMode = false;
 			if (AOpYBHUD* HUD = Cast<AOpYBHUD>(GetHUD()))
 			{
-				HUD->PlayShootAnimation();
+				HUD->SetAimMode(false);
 			}
+		}
+
+		// 사격 시 에임 반동 애니메이션 (HUD에 요청)
+		if (AOpYBHUD* HUD = Cast<AOpYBHUD>(GetHUD()))
+		{
+			HUD->PlayShootAnimation();
 		}
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("X. [PlayerController] 조종 중인 캐릭터를 찾을 수 없습니다!"));
+		UE_LOG(LogTemp, Error, TEXT("X. [PlayerController] 조종 중인 캐릭터를 찾을 수 없습니다."));
+	}
+}
+
+void AOpYBPlayerController::ToggleUltimate()
+{
+	if (AOpYBCharacter* ControlledCharacter = Cast<AOpYBCharacter>(GetPawn()))
+	{
+		// 게이지가 다 찼을 때만 토글 가능
+		if (ControlledCharacter->CanUseUltimate())
+		{
+			bIsUltReadyMode = !bIsUltReadyMode;
+			
+			if (AOpYBHUD* HUD = Cast<AOpYBHUD>(GetHUD()))
+			{
+				HUD->SetAimMode(bIsUltReadyMode);
+			}
+		}
 	}
 }
 

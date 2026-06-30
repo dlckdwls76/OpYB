@@ -32,12 +32,8 @@ private:
 	TObjectPtr<USpringArmComponent> CameraBoom;
 
 	/** Overhead UI Component */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UWidgetComponent> OverheadUIComponent;
-
-	/** 궁극기 궤적을 보여줄 컴포넌트 */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class UStaticMeshComponent> UltimateTrajectoryMesh;
 
 public:
 
@@ -82,13 +78,13 @@ public:
 	/** 마지막으로 발사한 시간 기록용 */
 	float LastFireTime;
 	
-	/** Attempts to shoot (called locally) */
+	/** 사격 시도 (로컬) */
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	void AttemptShoot();
+	void AttemptShoot(bool bIsUltimate);
 
-	/** Server RPC for shooting */
+	/** 실제 총알 생성 (서버) */
 	UFUNCTION(Server, Reliable, WithValidation)
-	void ServerShoot(FVector SpawnLocation, FRotator SpawnRotation);
+	void ServerShoot(FVector SpawnLocation, FRotator SpawnRotation, bool bIsUltimate);
 
 	/** Maximum Health */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats")
@@ -122,6 +118,25 @@ public:
 
 	/** 남은 부활 시간 (클라이언트 UI 표시용) */
 	float RespawnTimeLeft;
+
+	/** 궁극기 게이지 (0~3) */
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentUltCharge, VisibleAnywhere, BlueprintReadOnly, Category = "Ultimate")
+	int32 CurrentUltCharge;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ultimate")
+	int32 MaxUltCharge;
+
+	UFUNCTION()
+	void OnRep_CurrentUltCharge();
+
+	/** 궁극기 게이지 추가 */
+	void AddUltCharge();
+
+	/** 궁극기 사용 가능 여부 확인 */
+	bool CanUseUltimate() const { return CurrentUltCharge >= MaxUltCharge; }
+
+	/** 사망 시 게이지 초기화 */
+	void ResetUltCharge();
 
 	/** 부활 타이머 (서버용) */
 	FTimerHandle RespawnTimerHandle;
@@ -185,6 +200,6 @@ public:
 
 	/** 궁극기 발사 서버 RPC */
 	UFUNCTION(Server, Reliable, WithValidation)
-	void ServerFireUltimate(FVector SpawnLocation, FRotator SpawnRotation);
+	void ServerFireUltimate(FVector TargetLocation);
 
 };
