@@ -5,7 +5,7 @@
 #include "Character/OpYBCharacter.h"
 #include "Net/UnrealNetwork.h"
 
-// Sets default values
+// 기본값을 설정합니다.
 AOpYBMagneticField::AOpYBMagneticField()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -14,7 +14,7 @@ AOpYBMagneticField::AOpYBMagneticField()
 	MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
 	RootComponent = MeshComp;
 
-	// Typically a large sphere or cylinder with a translucent material that is set to NoCollision
+	// 보통 충돌이 없는 반투명 머티리얼이 적용된 큰 구체나 원기둥입니다.
 	MeshComp->SetCollisionProfileName(TEXT("NoCollision"));
 
 	PostProcessComp = CreateDefaultSubobject<UPostProcessComponent>(TEXT("PostProcessComp"));
@@ -22,35 +22,35 @@ AOpYBMagneticField::AOpYBMagneticField()
 	PostProcessComp->bUnbound = true;
 	PostProcessComp->BlendWeight = 0.0f;
 
-	// Setup visual effect for outside the zone (blur/tint)
+	// 구역 외부 시각 효과 설정 (블러/색조)
 	PostProcessComp->Settings.bOverride_VignetteIntensity = true;
 	PostProcessComp->Settings.VignetteIntensity = 1.0f;
 	PostProcessComp->Settings.bOverride_SceneFringeIntensity = true;
-	PostProcessComp->Settings.SceneFringeIntensity = 2.5f; // Chromatic aberration
+	PostProcessComp->Settings.SceneFringeIntensity = 2.5f; // 색수차
 	PostProcessComp->Settings.bOverride_ColorGain = true;
-	PostProcessComp->Settings.ColorGain = FVector4(1.5f, 0.6f, 0.6f, 1.0f); // Slight reddish tint
+	PostProcessComp->Settings.ColorGain = FVector4(1.5f, 0.6f, 0.6f, 1.0f); // 옅은 붉은색 색조
 }
 
-// Called when the game starts or when spawned
+// 게임이 시작되거나 스폰될 때 호출됩니다.
 void AOpYBMagneticField::BeginPlay()
 {
 	Super::BeginPlay();
 
 	if (HasAuthority())
 	{
-		// Start damage timer
+		// 피해 타이머 시작
 		GetWorldTimerManager().SetTimer(DamageTimerHandle, this, &AOpYBMagneticField::ApplyDamageToPlayersOutside, DamageInterval, true);
 	}
 }
 
-// Called every frame
+// 매 프레임 호출됩니다.
 void AOpYBMagneticField::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 	if (HasAuthority())
 	{
-		// Shrink logic
+		// 축소 로직
 		if (CurrentRadius > MinRadius)
 		{
 			CurrentRadius -= ShrinkRate * DeltaTime;
@@ -61,12 +61,12 @@ void AOpYBMagneticField::Tick(float DeltaTime)
 		}
 	}
 
-	// Update the scale of the mesh visually on both server and client
-	// Assuming the default sphere has a diameter of 100 units
+	// 서버와 클라이언트 양쪽에서 메시 스케일을 시각적으로 업데이트합니다.
+	// 기본 구체의 지름이 100 유닛이라고 가정합니다.
 	float ScaleFactor = CurrentRadius / 50.0f;
 	SetActorScale3D(FVector(ScaleFactor, ScaleFactor, ScaleFactor));
 
-	// Client-side visual effect updating
+	// 클라이언트 측 시각 효과 업데이트
 	if (APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0))
 	{
 		if (AOpYBCharacter* LocalChar = Cast<AOpYBCharacter>(PC->GetPawn()))
@@ -111,7 +111,7 @@ void AOpYBMagneticField::ApplyDamageToPlayersOutside()
 			float Distance = FVector::Dist2D(CenterLocation, Char->GetActorLocation());
 			if (Distance > CurrentRadius)
 			{
-				// Character is outside the safe zone
+				// 캐릭터가 안전 구역 밖에 있습니다.
 				UGameplayStatics::ApplyDamage(Char, DamagePerTick, nullptr, this, UDamageType::StaticClass());
 			}
 		}

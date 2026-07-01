@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// 에픽게임즈 저작권 소유.
 
 
 #include "TwinStickNPC.h"
@@ -16,10 +16,10 @@ ATwinStickNPC::ATwinStickNPC()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	// ensure we spawn an AI controller when we're spawned
+	// 스폰될 때 AI 컨트롤러를 스폰하는지 확인
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 
-	// configure the inherited components
+	// 상속된 컴포넌트 설정
 	GetCapsuleComponent()->SetCapsuleRadius(45.0f);
 	GetCapsuleComponent()->SetNotifyRigidBodyCollision(true);
 
@@ -43,7 +43,7 @@ void ATwinStickNPC::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// increment the NPC counter so we can cap spawning if necessary
+	// 필요한 경우 스폰을 제한하기 위해 NPC 카운터 증가
 	if (ATwinStickGameMode* GM = Cast<ATwinStickGameMode>(GetWorld()->GetAuthGameMode()))
 	{
 		GM->IncreaseNPCs();
@@ -55,13 +55,13 @@ void ATwinStickNPC::EndPlay(EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
 
-	// clear the destruction timer
+	// 파괴 타이머 지우기
 	GetWorld()->GetTimerManager().ClearTimer(DestructionTimer);
 }
 
 void ATwinStickNPC::Destroyed()
 {
-	// decrease the NPC counter so we can cap spawning if necessary
+	// NPC 카운터 감소 so we can cap spawning if necessary
 	if (ATwinStickGameMode* GM = Cast<ATwinStickGameMode>(GetWorld()->GetAuthGameMode()))
 	{
 		GM->DecreaseNPCs();
@@ -72,55 +72,55 @@ void ATwinStickNPC::Destroyed()
 
 void ATwinStickNPC::NotifyHit(class UPrimitiveComponent* MyComp, AActor* Other, class UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit)
 {
-	// have we collided against the player?
+	// 플레이어와 충돌했습니까?
 	if (ATwinStickCharacter* PlayerCharacter = Cast<ATwinStickCharacter>(Other))
 	{
-		// apply damage to the character
+		// 캐릭터에게 피해 적용
 		PlayerCharacter->HandleDamage(1.0f, GetActorForwardVector());
 	}
 }
 
 void ATwinStickNPC::ProjectileImpact(const FVector& ForwardVector)
 {
-	// only handle damage if we haven't been hit yet
+	// 아직 맞지 않은 경우에만 데미지 처리
 	if (bHit)
 	{
 		return;
 	}
 
-	// raise the hit flag
+	// 명중 플래그 올리기
 	bHit = true;
 
-	// deactivate character movement
+	// 캐릭터 무브먼트 비활성화
 	GetCharacterMovement()->Deactivate();
 
-	// award points
+	// 점수 보상
 	if (ATwinStickGameMode* GM = Cast<ATwinStickGameMode>(GetWorld()->GetAuthGameMode()))
 	{
 		GM->ScoreUpdate(Score);
 	}
 
-	// randomly spawn a pickup
+	// 픽업을 무작위로 스폰
 	if (FMath::RandRange(0, 100) < PickupSpawnChance)
 	{
 		ATwinStickPickup* Pickup = GetWorld()->SpawnActor<ATwinStickPickup>(PickupClass, GetActorTransform());
 	}
 	
-	// spawn the NPC destruction proxy
+	// NPC 스폰 destruction proxy
 	ATwinStickNPCDestruction* DestructionProxy = GetWorld()->SpawnActor<ATwinStickNPCDestruction>(DestructionProxyClass, GetActorTransform());
 
-	// hide this actor
+	// 이 액터 숨기기
 	SetActorHiddenInGame(true);
 
-	// disable collision
+	// 충돌 비활성화
 	SetActorEnableCollision(false);
 
-	// defer destruction
+	// 파괴 지연
 	GetWorld()->GetTimerManager().SetTimer(DestructionTimer, this, &ATwinStickNPC::DeferredDestroy, DeferredDestructionTime, false);
 }
 
 void ATwinStickNPC::DeferredDestroy()
 {
-	// destroy this actor
+	// 이 액터 파괴
 	Destroy();
 }

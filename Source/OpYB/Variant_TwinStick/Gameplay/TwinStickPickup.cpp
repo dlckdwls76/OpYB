@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// 에픽게임즈 저작권 소유.
 
 
 #include "TwinStickPickup.h"
@@ -11,10 +11,10 @@ ATwinStickPickup::ATwinStickPickup()
 {
  	PrimaryActorTick.bCanEverTick = true;
 
-	// create the root component
+	// 루트 생성 component
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 
-	// create the collision sphere
+	// 충돌 구체 생성
 	CollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("Collision Sphere"));
 	CollisionSphere->SetupAttachment(RootComponent);
 
@@ -25,7 +25,7 @@ ATwinStickPickup::ATwinStickPickup()
 	CollisionSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
 	CollisionSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 
-	// create the mesh
+	// 메시 생성
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	Mesh->SetupAttachment(CollisionSphere);
 
@@ -37,13 +37,13 @@ void ATwinStickPickup::NotifyActorBeginOverlap(AActor* OtherActor)
 {
 	Super::NotifyActorBeginOverlap(OtherActor);
 
-	// have we overlapped the player character?
+	// 플레이어 캐릭터와 겹쳤습니까?
 	if (ATwinStickCharacter* PlayerCharacter = Cast<ATwinStickCharacter>(OtherActor))
 	{
-		// give the pickup to the player
+		// 플레이어에게 픽업 주기
 		PlayerCharacter->AddPickup();
 
-		// destroy this pickup
+		// 이 픽업 파괴
 		Destroy();
 	}
 }

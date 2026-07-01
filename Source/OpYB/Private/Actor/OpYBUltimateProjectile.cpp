@@ -40,7 +40,7 @@ AOpYBUltimateProjectile::AOpYBUltimateProjectile()
 
 	MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
 	MeshComp->SetupAttachment(RootComponent);
-	MeshComp->SetCollisionProfileName(TEXT("NoCollision")); // Visual only
+	MeshComp->SetCollisionProfileName(TEXT("NoCollision")); // 시각 효과 전용
 	MeshComp->SetRelativeScale3D(FVector(3.0f, 3.0f, 3.0f));
 
 	DangerZoneDecal = CreateDefaultSubobject<UDecalComponent>(TEXT("DangerZoneDecal"));
@@ -79,7 +79,7 @@ void AOpYBUltimateProjectile::BeginPlay()
 		CollisionComp->IgnoreActorWhenMoving(GetInstigator(), true);
 	}
 
-	// Danger zone decal – replicate to all clients at target location
+	// 위험 구역 데칼 – 대상 위치의 모든 클라이언트에 리플리케이트
 	if (DangerZoneDecal)
 	{
 		DangerZoneDecal->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);

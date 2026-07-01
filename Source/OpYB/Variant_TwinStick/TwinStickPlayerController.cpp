@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// 에픽게임즈 저작권 소유.
 
 
 #include "TwinStickPlayerController.h"
@@ -17,15 +17,15 @@ void ATwinStickPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// only spawn touch controls on local player controllers
+	// 로컬 플레이어 컨트롤러에서만 터치 컨트롤 스폰
 	if (ShouldUseTouchControls() && IsLocalPlayerController())
 	{
-		// spawn the mobile controls widget
+		// 모바일 컨트롤 위젯 스폰
 		MobileControlsWidget = CreateWidget<UUserWidget>(this, MobileControlsWidgetClass);
 
 		if (MobileControlsWidget)
 		{
-			// add the controls to the player screen
+			// 플레이어 화면에 컨트롤 추가
 			MobileControlsWidget->AddToPlayerScreen(0);
 
 		} else {
@@ -41,10 +41,10 @@ void ATwinStickPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
 
-	// only add IMCs for local player controllers
+	// 로컬 플레이어 컨트롤러에 대해서만 IMC 추가
 	if (IsLocalPlayerController())
 	{
-		// Add Input Mapping Contexts
+		// 입력 매핑 컨텍스트 추가
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 		{
 			for (UInputMappingContext* CurrentContext : DefaultMappingContexts)
@@ -52,7 +52,7 @@ void ATwinStickPlayerController::SetupInputComponent()
 				Subsystem->AddMappingContext(CurrentContext, 0);
 			}
 
-			// only add these IMCs if we're not using mobile touch input
+			// 모바일 터치 입력을 사용하지 않는 경우에만 이러한 IMC 추가
 			if (!ShouldUseTouchControls())
 			{
 				for (UInputMappingContext* CurrentContext : MobileExcludedMappingContexts)
@@ -68,24 +68,24 @@ void ATwinStickPlayerController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
 
-	// subscribe to the pawn's OnDestroyed delegate
+	// 폰의 파괴됨 델리게이트 구독
 	InPawn->OnDestroyed.AddDynamic(this, &ATwinStickPlayerController::OnPawnDestroyed);
 }
 
 void ATwinStickPlayerController::OnPawnDestroyed(AActor* DestroyedActor)
 {
-	// find the player start
+	// 플레이어 시작 지점 찾기
 	TArray<AActor*> ActorList;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), ActorList);
 
 	if (ActorList.Num() > 0)
 	{
-		// spawn a character at the player start
+		// 플레이어 시작 지점에서 캐릭터 스폰
 		const FTransform SpawnTransform = ActorList[0]->GetActorTransform();
 
 		if (ATwinStickCharacter* RespawnedCharacter = GetWorld()->SpawnActor<ATwinStickCharacter>(CharacterClass, SpawnTransform))
 		{
-			// possess the character
+			// 캐릭터 빙의
 			Possess(RespawnedCharacter);
 		}
 	}
@@ -93,6 +93,6 @@ void ATwinStickPlayerController::OnPawnDestroyed(AActor* DestroyedActor)
 
 bool ATwinStickPlayerController::ShouldUseTouchControls() const
 {
-	// are we on a mobile platform? Should we force touch?
+	// 모바일 플랫폼입니까? 강제 터치를 해야 합니까?
 	return SVirtualJoystick::ShouldDisplayTouchInterface() || bForceTouchControls;
 }

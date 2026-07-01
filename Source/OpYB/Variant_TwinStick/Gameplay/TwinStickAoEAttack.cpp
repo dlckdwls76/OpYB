@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// 에픽게임즈 저작권 소유.
 
 
 #include "TwinStickAoEAttack.h"
@@ -13,16 +13,16 @@ ATwinStickAoEAttack::ATwinStickAoEAttack()
 {
  	PrimaryActorTick.bCanEverTick = true;
 
-	// create the root component
+	// 루트 생성 component
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 
-	// create the mesh that provides the visual representation for the AoE
+	// 메시 생성 that provides the visual representation for the AoE
 	SphereVisual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Sphere Visual"));
 	SphereVisual->SetupAttachment(RootComponent);
 
 	SphereVisual->SetCollisionProfileName(FName("NoCollision"));
 
-	// create the collision sphere
+	// 충돌 구체 생성
 	CollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("Collision Sphere"));
 	CollisionSphere->SetupAttachment(RootComponent);
 
@@ -40,7 +40,7 @@ void ATwinStickAoEAttack::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	// set up the AoE timers
+	// 광역 공격 타이머 설정
 	GetWorld()->GetTimerManager().SetTimer(StartAoETimer, this, &ATwinStickAoEAttack::StartAoE, StartAoETime, false);
 	GetWorld()->GetTimerManager().SetTimer(StopAoETimer, this, &ATwinStickAoEAttack::StopAoE, StopAoETime, false);
 
@@ -50,26 +50,26 @@ void ATwinStickAoEAttack::EndPlay(EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
 
-	// clear the timers
+	// 타이머 지우기
 	GetWorld()->GetTimerManager().ClearTimer(StartAoETimer);
 	GetWorld()->GetTimerManager().ClearTimer(StopAoETimer);
 }
 
 void ATwinStickAoEAttack::StartAoE()
 {
-	// raise the active flag
+	// 활성 플래그 올리기
 	bIsAoEActive = true;
 
-	// find all actors overlapping the NPC
+	// NPC와 겹치는 모든 액터 찾기
 	TArray<AActor*> Overlaps;
 	CollisionSphere->GetOverlappingActors(Overlaps, ATwinStickNPC::StaticClass());
 
-	// process each overlapping actor
+	// 겹치는 각 액터 처리
 	for (AActor* Current : Overlaps)
 	{
 		if (ATwinStickNPC* NPC = Cast<ATwinStickNPC>(Current))
 		{
-			// tell the NPC it's been hit
+			// NPC에게 맞았음을 알림
 			NPC->ProjectileImpact(FVector::ZeroVector);
 		}
 	}
@@ -77,25 +77,25 @@ void ATwinStickAoEAttack::StartAoE()
 
 void ATwinStickAoEAttack::StopAoE()
 {
-	// drop the active flag
+	// 활성화 플래그 해제
 	bIsAoEActive = false;
 
-	// stop the damage tick timer
+	// 데미지 틱 타이머 정지
 	GetWorld()->GetTimerManager().ClearTimer(StartAoETimer);
 
-	// call the BP handler. It will be responsible for destroying the Actor when it's done
+	// BP 핸들러 호출. 작업이 끝나면 액터를 파괴하는 역할을 합니다.
 	BP_AoEFinished();
 }
 
 void ATwinStickAoEAttack::OnAoEOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	// is the explosion active?
+	// 폭발이 활성화되었습니까?
 	if (bIsAoEActive)
 	{
-		// did we overlap an NPC?
+		// NPC와 겹쳤습니까?
 		if (ATwinStickNPC* NPC = Cast<ATwinStickNPC>(OtherActor))
 		{
-			// tell the NPC it's been hit
+			// NPC에게 맞았음을 알림
 			NPC->ProjectileImpact(FVector::ZeroVector);
 		}
 	}

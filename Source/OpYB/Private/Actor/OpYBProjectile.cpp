@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// 프로젝트 세팅의 설명 페이지에 저작권 공지를 채우세요.
 
 #include "Actor/OpYBProjectile.h"
 #include "Components/SphereComponent.h"
@@ -10,16 +10,16 @@
 #include "Kismet/GameplayStatics.h"
 #include "Character/OpYBCharacter.h"
 
-// Sets default values
+// 기본값을 설정합니다.
 AOpYBProjectile::AOpYBProjectile()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// 이 액터가 매 프레임 Tick()을 호출하도록 설정합니다. 필요하지 않은 경우 성능 향상을 위해 끌 수 있습니다.
 	PrimaryActorTick.bCanEverTick = true;
 
-	// Use a sphere as a simple collision representation
+	// 단순한 충돌 표현을 위해 구체를 사용합니다.
 	CollisionComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
 	CollisionComp->InitSphereRadius(15.0f);
-	// Use custom collision to prevent physical pushes on players
+	// 플레이어 밀림을 방지하기 위해 커스텀 충돌 사용
 	CollisionComp->BodyInstance.SetCollisionProfileName("Custom");
 	CollisionComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	CollisionComp->SetCollisionObjectType(ECC_WorldDynamic);
@@ -33,17 +33,17 @@ AOpYBProjectile::AOpYBProjectile()
 	CollisionComp->OnComponentHit.AddDynamic(this, &AOpYBProjectile::OnHit);
 	// 캐릭터에 겹쳤을 때 (Overlap)
 	CollisionComp->OnComponentBeginOverlap.AddDynamic(this, &AOpYBProjectile::OnOverlapBegin);
-	// Players can't walk on it
+	// 플레이어가 밟고 걸을 수 없습니다.
 	CollisionComp->SetWalkableSlopeOverride(FWalkableSlopeOverride(WalkableSlope_Unwalkable, 0.f));
 	CollisionComp->CanCharacterStepUpOn = ECB_No;
-	// Set as root component
+	// 루트 컴포넌트로 설정
 	RootComponent = CollisionComp;
-	// Mesh component
+	// 메시 컴포넌트
 	MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
 	MeshComp->SetupAttachment(RootComponent);
-	MeshComp->SetCollisionProfileName(TEXT("NoCollision")); // Mesh doesn't need collision, Sphere does
+	MeshComp->SetCollisionProfileName(TEXT("NoCollision")); // 메시는 충돌이 필요 없고, 구체는 충돌이 필요합니다.
 
-	// Load default sphere mesh
+	// 기본 구체 메시 로드
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereMeshAsset(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 	if (SphereMeshAsset.Succeeded())
 	{
@@ -52,23 +52,23 @@ AOpYBProjectile::AOpYBProjectile()
 		// MeshComp->SetRelativeScale3D(FVector(0.3f, 0.3f, 0.3f));
 	}
 
-	// Use a ProjectileMovementComponent to govern this projectile's movement
+	// 이 투사체의 움직임을 제어하기 위해 ProjectileMovementComponent를 사용합니다.
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileComp"));
 	ProjectileMovement->UpdatedComponent = CollisionComp;
 	ProjectileMovement->InitialSpeed = 3000.f;
 	ProjectileMovement->MaxSpeed = 3000.f;
 	ProjectileMovement->bRotationFollowsVelocity = true;
 	ProjectileMovement->bShouldBounce = false;
-	ProjectileMovement->ProjectileGravityScale = 0.0f; // No gravity
+	ProjectileMovement->ProjectileGravityScale = 0.0f; // 중력 없음
 
-	// Die after 3 seconds by default (this handles the "disappear after distance" implicitly since speed * life = distance)
+	// 기본적으로 3초 후 소멸 (속도 * 수명 = 거리이므로 "거리 이동 후 소멸"을 암시적으로 처리함)
 	InitialLifeSpan = 1.0f; // 3000 * 1 = 3000 units range
 
-	// Ensure replication for multiplayer
+	// 멀티플레이어를 위한 리플리케이션 보장
 	bReplicates = true;
 }
 
-// Called when the game starts or when spawned
+// 게임이 시작되거나 스폰될 때 호출됩니다.
 void AOpYBProjectile::BeginPlay()
 {
 	Super::BeginPlay();
@@ -86,7 +86,7 @@ void AOpYBProjectile::BeginPlay()
 	}
 }
 
-// Called every frame
+// 매 프레임 호출됩니다.
 void AOpYBProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);

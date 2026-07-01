@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// 에픽게임즈 저작권 소유.
 
 
 #include "TwinStickProjectile.h"
@@ -11,10 +11,10 @@ ATwinStickProjectile::ATwinStickProjectile()
 {
  	PrimaryActorTick.bCanEverTick = true;
 
-	// this actor will be destroyed automatically once InitialLifeSpan expires
+	// 이 액터는 InitialLifeSpan이 만료되면 자동으로 파괴됩니다.
 	InitialLifeSpan = 2.0f;
 
-	// create the collision sphere and set it as the root component
+	// 충돌 구체 생성 and set it as the root component
 	RootComponent = CollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("Collision Sphere"));
 
 	CollisionSphere->SetSphereRadius(35.0f);
@@ -23,13 +23,13 @@ ATwinStickProjectile::ATwinStickProjectile()
 	CollisionSphere->SetCollisionObjectType(ECC_WorldDynamic);
 	CollisionSphere->SetCollisionResponseToAllChannels(ECR_Block);
 
-	// create the mesh
+	// 메시 생성
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	Mesh->SetupAttachment(RootComponent);
 
 	Mesh->SetCollisionProfileName(FName("NoCollision"));
 
-	// create the projectile movement comp. No need to attach it because it's not a scene component
+	// 투사체 이동 컴포넌트 생성. 씬 컴포넌트가 아니므로 붙일 필요가 없습니다.
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("Projectile Movement"));
 
 	ProjectileMovement->InitialSpeed = 2000.0f;
@@ -47,19 +47,19 @@ void ATwinStickProjectile::NotifyHit(class UPrimitiveComponent* MyComp, AActor* 
 {
 	Super::NotifyHit(MyComp, Other, OtherComp, bSelfMoved, HitLocation, HitNormal, NormalImpulse, Hit);
 
-	// have we hit a NPC?
+	// NPC를 맞췄습니까?
 	if (ATwinStickNPC* NPC = Cast<ATwinStickNPC>(Other))
 	{
-		// tell the NPC it's been hit
+		// NPC에게 맞았음을 알림
 		NPC->ProjectileImpact(FVector::ZeroVector);
 
-		// destroy this projectile
+		// 이 투사체 파괴
 		Destroy();
 	}
 }
 
 void ATwinStickProjectile::OnProjectileStop(const FHitResult& ImpactResult)
 {
-	// destroy this actor immediately
+	// 이 액터 파괴 immediately
 	Destroy();
 }

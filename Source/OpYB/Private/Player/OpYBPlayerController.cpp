@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// 에픽게임즈 저작권 소유.
 
 #include "Player/OpYBPlayerController.h"
 #include "GameFramework/Pawn.h"
@@ -58,14 +58,14 @@ void AOpYBPlayerController::SetupInputComponent()
 	if (IsLocalPlayerController())
 	{
 		
-		// Set up action bindings
+		// 액션 바인딩 설정
 		if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent))
 		{
-			// Setup movement input
+			// 무브먼트 입력 설정
 			EnhancedInputComponent->BindAction(MoveForwardAction, ETriggerEvent::Triggered, this, &AOpYBPlayerController::MoveForward);
 			EnhancedInputComponent->BindAction(MoveRightAction, ETriggerEvent::Triggered, this, &AOpYBPlayerController::MoveRight);
 			
-			// Setup shoot input (클릭 -> 뗄 때 발사되도록 Completed로 설정)
+			// 사격 입력 설정 (클릭 -> 뗄 때 발사되도록 Completed로 설정)
 			if (ShootAction)
 			{
 				EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Triggered, this, &AOpYBPlayerController::Shoot);
@@ -77,7 +77,7 @@ void AOpYBPlayerController::SetupInputComponent()
 				EnhancedInputComponent->BindAction(UltimateAction, ETriggerEvent::Started, this, &AOpYBPlayerController::ToggleUltimate);
 			}
 
-			// Setup roll input (스페이스바)
+			// 구르기 입력 설정 (스페이스바)
 			if (RollAction)
 			{
 				EnhancedInputComponent->BindAction(RollAction, ETriggerEvent::Triggered, this, &AOpYBPlayerController::DoRoll);
@@ -116,7 +116,7 @@ void AOpYBPlayerController::Tick(float DeltaTime)
 
 				FVector Direction = (TargetLocation - PawnLocation).GetSafeNormal();
 				FRotator NewRotation = Direction.Rotation();
-				NewRotation.Pitch = 0.f; // Keep character upright
+				NewRotation.Pitch = 0.f; // 캐릭터를 똑바로 유지
 				NewRotation.Roll = 0.f;
 
 				ControlledPawn->SetActorRotation(NewRotation);

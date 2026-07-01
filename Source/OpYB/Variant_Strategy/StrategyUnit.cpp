@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// 에픽게임즈 저작권 소유.
 
 
 #include "StrategyUnit.h"
@@ -12,17 +12,17 @@ AStrategyUnit::AStrategyUnit()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	// ensure this unit has a valid AI controller to handle move requests
+	// 이 유닛이 이동 요청을 처리할 유효한 AI 컨트롤러를 가지고 있는지 확인
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 
-	// create the interaction range sphere
+	// 상호작용 범위 구체 생성
 	InteractionRange = CreateDefaultSubobject<USphereComponent>(TEXT("Interaction Range"));
 	InteractionRange->SetupAttachment(RootComponent);
 
 	InteractionRange->SetSphereRadius(100.0f);
 	InteractionRange->SetCollisionProfileName(FName("OverlapAllDynamic"));
 
-	// configure movement
+	// 무브먼트 설정
 	GetCharacterMovement()->GravityScale = 1.5f;
 	GetCharacterMovement()->MaxAcceleration = 1000.0f;
 	GetCharacterMovement()->BrakingFrictionFactor = 1.0f;
@@ -41,12 +41,12 @@ AStrategyUnit::AStrategyUnit()
 
 void AStrategyUnit::NotifyControllerChanged()
 {
-	// validate and save a copy of the AI controller reference
+	// AI 컨트롤러 레퍼런스 사본 유효성 검사 및 저장
 	AIController = Cast<AAIController>(Controller);
 	
 	if (AIController)
 	{
-		// subscribe to the move finished handler on the path following component
+		// 경로 추적 컴포넌트의 이동 완료 핸들러 구독
 		UPathFollowingComponent* PFComp = AIController->GetPathFollowingComponent();
 		if (PFComp)
 		{
@@ -57,34 +57,34 @@ void AStrategyUnit::NotifyControllerChanged()
 
 void AStrategyUnit::StopMoving()
 {
-	// use the character movement component to stop movement
+	// 캐릭터 무브먼트 컴포넌트를 사용하여 이동 정지
 	GetCharacterMovement()->StopMovementImmediately();
 }
 
 void AStrategyUnit::UnitSelected()
 {
-	// pass control to BP
+	// BP로 제어권 넘기기
 	BP_UnitSelected();
 }
 
 void AStrategyUnit::UnitDeselected()
 {
-	// pass control to BP
+	// BP로 제어권 넘기기
 	BP_UnitDeselected();
 }
 
 void AStrategyUnit::Interact(AStrategyUnit* Interactor)
 {
-	// ensure the interactor is valid
+	// 상호작용자가 유효한지 확인
 	if (IsValid(Interactor))
 	{
-		// rotate towards the actor we're interacting with
+		// 상호작용 중인 액터 쪽으로 회전
 		SetActorRotation(UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), Interactor->GetActorLocation()));
 
-		// signal the interactor to play its interaction behavior
+		// 상호작용자에게 상호작용 동작을 재생하라는 신호 보내기
 		Interactor->BP_InteractionBehavior(this);
 
-		// play our own interaction behavior
+		// 자체 상호작용 동작 재생
 		BP_InteractionBehavior(Interactor);
 	}
 	
@@ -92,10 +92,10 @@ void AStrategyUnit::Interact(AStrategyUnit* Interactor)
 
 bool AStrategyUnit::MoveToLocation(const FVector& Location, float AcceptanceRadius)
 {
-	// ensure we have a valid AI Controller
+	// 유효한 AI 컨트롤러가 있는지 확인
 	if (AIController)
 	{
-		// set up the AI Move Request
+		// AI 이동 요청 설정
 		FAIMoveRequest MoveReq;
 
 		MoveReq.SetGoalLocation(Location);
@@ -107,27 +107,27 @@ bool AStrategyUnit::MoveToLocation(const FVector& Location, float AcceptanceRadi
 		MoveReq.SetNavigationFilter(AIController->GetDefaultNavigationFilterClass());
 		MoveReq.SetCanStrafe(false);
 
-		// request a move to the AI Controller
+		// AI 컨트롤러에 이동 요청
 		FNavPathSharedPtr FollowedPath;
 		const FPathFollowingRequestResult ResultData = AIController->MoveTo(MoveReq, &FollowedPath);
 		
-		// check the move result
+		// 이동 결과 확인
 		switch (ResultData.Code)
 		{
-			// failed. Return false
+			// 실패함. false 반환
 			case EPathFollowingRequestResult::Failed:
 
 				return false;
 				break;
 
-			// already at goal. Return true and call the move completed delegate
+			// 이미 목표지점입니다. true를 반환하고 이동 완료 델리게이트를 호출합니다.
 			case EPathFollowingRequestResult::AlreadyAtGoal:
 
 				OnMoveCompleted.Broadcast(this);
 				return true;
 				break;
 
-			// move successfully scheduled. Return true
+			// 이동이 성공적으로 예약됨. true 반환
 			case EPathFollowingRequestResult::RequestSuccessful:
 
 				return true;
@@ -135,12 +135,12 @@ bool AStrategyUnit::MoveToLocation(const FVector& Location, float AcceptanceRadi
 		}
 	}
 
-	// the move could not be completed
+	// 이동을 완료할 수 없습니다.
 	return false;
 }
 
 void AStrategyUnit::OnMoveFinished(FAIRequestID RequestID, const FPathFollowingResult& Result)
 {
-	// call the delegate
+	// 델리게이트 호출
 	OnMoveCompleted.Broadcast(this);
 }

@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// 에픽게임즈 저작권 소유.
 
 
 #include "StrategyPawn.h"
@@ -10,23 +10,23 @@ AStrategyPawn::AStrategyPawn()
 {
  	PrimaryActorTick.bCanEverTick = true;
 
-	// create the root
+	// 루트 생성
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 
-	// create the camera
+	// 카메라 생성
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(RootComponent);
 
-	// create the movement component
+	// 무브먼트 컴포넌트 생성
 	FloatingPawnMovement = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("Floating Pawn Movement"));
 
-	// configure the camera
+	// 카메라 설정
 	Camera->ProjectionMode = ECameraProjectionMode::Orthographic;
 	Camera->OrthoWidth = 1500.0f;
 	Camera->AutoPlaneShift = 1.0f;
 	Camera->bUpdateOrthoPlanes = false;
 
-	// configure the movement comp
+	// 무브먼트 컴포넌트 설정
 	FloatingPawnMovement->bConstrainToPlane = true;
 	FloatingPawnMovement->SetPlaneConstraintNormal(FVector::UpVector);
 	FloatingPawnMovement->SetPlaneConstraintOrigin(FVector::UpVector * 1500.0f);
@@ -34,6 +34,6 @@ AStrategyPawn::AStrategyPawn()
 
 void AStrategyPawn::SetZoomModifier(float Value)
 {
-	// set the ortho width on the camera
+	// 카메라의 오쏘 너비 설정
 	Camera->SetOrthoWidth(Value);
 }

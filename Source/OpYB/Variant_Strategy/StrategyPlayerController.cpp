@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// 에픽게임즈 저작권 소유.
 
 
 #include "StrategyPlayerController.h"
@@ -19,7 +19,7 @@
 
 AStrategyPlayerController::AStrategyPlayerController()
 {
-	// mouse cursor should always be shown
+	// 마우스 커서는 항상 표시되어야 합니다.
 	bShowMouseCursor = true;
 }
 
@@ -27,13 +27,13 @@ void AStrategyPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
 
-	// only set up input on local player controllers
+	// 로컬 플레이어 컨트롤러에서만 입력 설정
 	if (IsLocalPlayerController())
 	{
-		// add the input mapping context
+		// 입력 매핑 컨텍스트 추가
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 		{
-			// choose the context based on the input mode
+			// 입력 모드에 기반한 컨텍스트 선택
 			UInputMappingContext* ChosenContext = nullptr;
 
 			switch (InputMode)
@@ -49,15 +49,15 @@ void AStrategyPlayerController::SetupInputComponent()
 			Subsystem->AddMappingContext(ChosenContext, 0);
 		}
 
-		// bind the input mappings
+		// 입력 매핑 바인딩
 		if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent))
 		{
-			// Camera
+			// 카메라
 			EnhancedInputComponent->BindAction(MoveCameraAction, ETriggerEvent::Triggered, this, &AStrategyPlayerController::MoveCamera);
 			EnhancedInputComponent->BindAction(ZoomCameraAction, ETriggerEvent::Triggered, this, &AStrategyPlayerController::ZoomCamera);
 			EnhancedInputComponent->BindAction(ResetCameraAction, ETriggerEvent::Triggered, this, &AStrategyPlayerController::ResetCamera);
 
-			// Mouse Interaction
+			// 마우스 상호작용
 			EnhancedInputComponent->BindAction(SelectHoldAction, ETriggerEvent::Started, this, &AStrategyPlayerController::SelectHoldStarted);
 			EnhancedInputComponent->BindAction(SelectHoldAction, ETriggerEvent::Triggered, this, &AStrategyPlayerController::SelectHoldTriggered);
 			EnhancedInputComponent->BindAction(SelectHoldAction, ETriggerEvent::Completed, this, &AStrategyPlayerController::SelectHoldCompleted);
@@ -75,7 +75,7 @@ void AStrategyPlayerController::SetupInputComponent()
 			EnhancedInputComponent->BindAction(InteractClickAction, ETriggerEvent::Started, this, &AStrategyPlayerController::InteractClickStarted);
 			EnhancedInputComponent->BindAction(InteractClickAction, ETriggerEvent::Completed, this, &AStrategyPlayerController::InteractClickCompleted);
 
-			// Touch Interaction
+			// 터치 상호작용
 			EnhancedInputComponent->BindAction(TouchPrimaryHoldAction, ETriggerEvent::Started, this, &AStrategyPlayerController::TouchPrimaryHoldStarted);
 			EnhancedInputComponent->BindAction(TouchPrimaryHoldAction, ETriggerEvent::Triggered, this, &AStrategyPlayerController::TouchPrimaryHoldTriggered);
 			EnhancedInputComponent->BindAction(TouchPrimaryHoldAction, ETriggerEvent::Completed, this, &AStrategyPlayerController::TouchPrimaryHoldCompleted);
@@ -93,33 +93,33 @@ void AStrategyPlayerController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
 
-	// ensure we have the right pawn type
+	// 올바른 폰 유형인지 확인
 	ControlledPawn = Cast<AStrategyPawn>(InPawn);
 	check(ControlledPawn);
 
-	// set the zoom level from the pawn's camera
+	// 폰의 카메라에서 확대/축소 레벨 설정
 	DefaultZoom = CameraZoom = ControlledPawn->GetCamera()->OrthoWidth;
 
-	// cast the HUD pointer
+	// HUD 포인터 캐스팅
 	StrategyHUD = Cast<AStrategyHUD>(GetHUD());
 	check(StrategyHUD);
 }
 
 void AStrategyPlayerController::DragSelectUnits(const TArray<AStrategyUnit*>& Units)
 {
-	// do we have units in the list?
+	// 목록에 유닛이 있습니까?
 	if (Units.Num() > 0)
 	{
-		// ensure any previous units are deselected
+		// 이전 유닛들이 모두 선택 해제되었는지 확인
 		DoDeselectAllCommand();
 
-		// select each new unit
+		// 각각의 새 유닛 선택
 		for (AStrategyUnit* CurrentUnit : Units)
 		{
-			// add the unit to the selection list
+			// 선택 목록에 유닛 추가
 			ControlledUnits.Add(CurrentUnit);
 
-			// select the unit
+			// 유닛 선택
 			CurrentUnit->UnitSelected();
 		}
 
@@ -127,7 +127,7 @@ void AStrategyPlayerController::DragSelectUnits(const TArray<AStrategyUnit*>& Un
 	else
 	{
 
-		// release any currently selected units since nothing is on the box
+		// 박스 내에 아무것도 없으므로 현재 선택된 모든 유닛 선택 해제
 		if (ControlledUnits.Num() > 0)
 		{
 			DoDeselectAllCommand();
@@ -145,49 +145,49 @@ void AStrategyPlayerController::MoveCamera(const FInputActionValue& Value)
 {
 	FVector2D InputVector = Value.Get<FVector2D>();
 
-	// get the forward input component vector
+	// 앞으로 이동 입력 컴포넌트 벡터 가져오기
 	FRotator ForwardRot = GetControlRotation();
 	ForwardRot.Pitch = 0.0f;
 
-	// get the right input component vector
+	// 오른쪽 이동 입력 컴포넌트 벡터 가져오기
 	FRotator RightRot = GetControlRotation();
 	ForwardRot.Pitch = 0.0f;
 	ForwardRot.Roll = 0.0f;
 
-	// add the forward input
+	// 앞으로 이동 입력 추가
 	ControlledPawn->AddMovementInput(ForwardRot.RotateVector(FVector::ForwardVector), InputVector.X + InputVector.Y);
 
-	// add the right input
+	// 오른쪽 이동 입력 추가
 	ControlledPawn->AddMovementInput(RightRot.RotateVector(FVector::RightVector), InputVector.X - InputVector.Y);
 
 }
 
 void AStrategyPlayerController::ZoomCamera(const FInputActionValue& Value)
 {
-	// scale the input and subtract from the current zoom level
+	// 입력을 스케일링하고 현재 확대/축소 레벨에서 빼기
 	float ZoomLevel = CameraZoom - (Value.Get<float>() * ZoomScaling);
 
-	// clamp to min/max zoom levels
+	// 최소/최대 확대/축소 레벨로 고정
 	CameraZoom = FMath::Clamp(ZoomLevel, MinZoomLevel, MaxZoomLevel);
 
-	// update the pawn's camera
+	// 폰의 카메라 업데이트
 	ControlledPawn->SetZoomModifier(CameraZoom);
 
 }
 
 void AStrategyPlayerController::ResetCamera(const FInputActionValue& Value)
 {
-	// reset zoom level to its initial value
+	// 확대/축소 레벨을 초기값으로 재설정
 	CameraZoom = DefaultZoom;
 
-	// update the pawn's camera
+	// 폰의 카메라 업데이트
 	ControlledPawn->SetZoomModifier(DefaultZoom);
 
 }
 
 void AStrategyPlayerController::SelectHoldStarted(const FInputActionValue& Value)
 {
-	// save the selection start position
+	// 선택 시작 위치 저장
 	StartingSelectionPosition = GetMouseLocation();
 
 }
@@ -195,13 +195,13 @@ void AStrategyPlayerController::SelectHoldStarted(const FInputActionValue& Value
 void AStrategyPlayerController::SelectHoldTriggered(const FInputActionValue& Value)
 {
 
-	// get the current mouse position
+	// 현재 마우스 위치 가져오기
 	FVector2D SelectionPosition = GetMouseLocation();
 
-	// calculate the size of the selection box
+	// 선택 박스의 크기 계산
 	FVector2D SelectionSize = SelectionPosition - StartingSelectionPosition;
 
-	// update the selection box on the HUD
+	// HUD의 선택 박스 업데이트
 	if (StrategyHUD)
 	{
 		StrategyHUD->DragSelectUpdate(StartingSelectionPosition, SelectionSize, SelectionPosition, true);
@@ -211,7 +211,7 @@ void AStrategyPlayerController::SelectHoldTriggered(const FInputActionValue& Val
 
 void AStrategyPlayerController::SelectHoldCompleted(const FInputActionValue& Value)
 {
-	// reset the drag box on the HUD
+	// HUD의 드래그 박스 초기화
 	if (StrategyHUD)
 	{
 		StrategyHUD->DragSelectUpdate(FVector2D::ZeroVector, FVector2D::ZeroVector, FVector2D::ZeroVector, false);
@@ -230,48 +230,48 @@ void AStrategyPlayerController::SelectClick(const FInputActionValue& Value)
 void AStrategyPlayerController::SelectionModifier(const FInputActionValue& Value)
 {
 
-	// update the selection modifier flag
+	// 선택 수정자 플래그 업데이트
 	bSelectionModifier = Value.Get<bool>();
 }
 
 void AStrategyPlayerController::InteractHoldStarted(const FInputActionValue& Value)
 {
 
-	// save the starting interaction position
+	// 상호작용 시작 위치 저장
 	StartingInteractionPosition = GetMouseLocation();
 }
 
 void AStrategyPlayerController::InteractHoldTriggered(const FInputActionValue& Value)
 {
 
-	// do a drag scroll 
+	// 드래그 스크롤 실행 
 	DoDragScrollCommand();
 }
 
 void AStrategyPlayerController::InteractClickStarted(const FInputActionValue& Value)
 {
 
-	// reset the interaction flag
+	// 상호작용 플래그 초기화
 	ResetInteraction();
 }
 
 void AStrategyPlayerController::InteractClickCompleted(const FInputActionValue& Value)
 {
 
-	// do we have any units in the control list and a valid interaction location under the cursor?
+	// 제어 목록에 유닛이 있고 커서 아래에 유효한 상호작용 위치가 있습니까?
 	if (ControlledUnits.Num() > 0 && GetLocationUnderCursor(CachedInteraction))
 	{
-		// is double tap select all active?
+		// 더블 탭 모두 선택이 활성화되었습니까?
 		if (bDoubleTapActive)
 		{
-			// release double tap select all
+			// 더블 탭 모두 선택 해제
 			bDoubleTapActive = false;
 
 		}
 		else
 		{
 
-			// move the selected units to the target location
+			// 선택한 유닛을 대상 위치로 이동
 			DoMoveUnitsCommand();
 
 		}
@@ -280,19 +280,19 @@ void AStrategyPlayerController::InteractClickCompleted(const FInputActionValue& 
 
 void AStrategyPlayerController::TouchPrimaryHoldStarted(const FInputActionValue& Value)
 {
-	// save the tap press time
+	// 탭 누른 시간 저장
 	LastTapPressTime = GetWorld()->GetRealTimeSeconds();
 
-	// save the starting interaction position
+	// 상호작용 시작 위치 저장
 	StartingInteractionPosition = Value.Get<FVector2D>();
 }
 
 void AStrategyPlayerController::TouchPrimaryHoldTriggered(const FInputActionValue& Value)
 {
-	// is this touch longer than a tap?
+	// 이 터치가 탭보다 깁니까?
 	if ((GetWorld()->GetRealTimeSeconds() - LastTapPressTime) > TouchTapMaxAllowedTime)
 	{
-		// if we're not doing a box select, do a drag scroll
+		// 박스 선택 중이 아니면 드래그 스크롤 실행
 		if (!bSelectionModifier)
 		{
 			DoDragScrollCommand();
@@ -302,22 +302,22 @@ void AStrategyPlayerController::TouchPrimaryHoldTriggered(const FInputActionValu
 
 void AStrategyPlayerController::TouchPrimaryHoldCompleted(const FInputActionValue& Value)
 {
-	// check if we're doing a tap or double tap.
-	// we have to do this manually because EnhancedInput tap triggers work differently on touch inputs
+	// 탭인지 더블 탭인지 확인합니다.
+	// 터치 입력에서는 EnhancedInput 탭 트리거가 다르게 작동하므로 수동으로 이 작업을 수행해야 합니다.
 	bool bTapped = false;
 	bool bDoubleTapped = false;
 
 	CheckTouchTap(bTapped, bDoubleTapped);
 
-	// do we have a double tap?
+	// 더블 탭입니까?
 	if (bTapped)
 	{
 		if (bDoubleTapped)
 		{
-			// ensure are we not doing a box select
+			// 박스 선택을 하고 있지 않은지 확인
 			if (!bSelectionModifier)
 			{
-				// depending on the double tap toggle, select or deselect all units
+				// 더블 탭 토글에 따라 모든 유닛 선택 또는 선택 해제
 				if (bDoubleTapActive)
 				{
 					DoDeselectAllCommand();
@@ -327,23 +327,23 @@ void AStrategyPlayerController::TouchPrimaryHoldCompleted(const FInputActionValu
 					DoSelectAllOnScreenCommand();
 				}
 
-				// toggle the double tap flag
+				// 더블 탭 플래그 토글
 				bDoubleTapActive = !bDoubleTapActive;
 			}
 		}
 
-	// no double tap, handle this touch input normally
+	// 더블 탭 없음, 이 터치 입력을 정상적으로 처리
 	}
 	else
 	{
 
-		// ensure we're not already box selecting, or were just box selecting
+		// 이미 박스 선택 중이 아니거나 방금 전까지 박스 선택 중이 아니었는지 확인
 		if (!(bSelectionModifier || (GetWorld()->GetRealTimeSeconds() - LastBoxSelectTime) < TouchTapMaxAllowedTime))
 		{
-			// project the touch location and cache the selection point
+			// 터치 위치를 투영하고 선택 지점을 캐시
 			CachedInteraction = CachedSelection = ProjectTouchPointToWorldSpace();
 
-			// do a selection action with the cached location
+			// 캐시된 위치로 선택 작업 실행
 			DoSelectionCommand();
 		}
 
@@ -354,25 +354,25 @@ void AStrategyPlayerController::TouchPrimaryHoldCompleted(const FInputActionValu
 void AStrategyPlayerController::TouchSecondaryStarted(const FInputActionValue& Value)
 {
 
-	// raise the selection modifier flag
+	// 선택 수정자 플래그 올리기
 	bSelectionModifier = true;
 
-	// save the starting position for the second finger
+	// 두 번째 손가락의 시작 위치 저장
 	StartingSecondFingerPosition = Value.Get<FVector2D>();
 }
 
 void AStrategyPlayerController::TouchSecondaryTriggered(const FInputActionValue& Value)
 {
-	// update the current position for the second finger
+	// 두 번째 손가락의 현재 위치 업데이트
 	CurrentSecondFingerPosition = Value.Get<FVector2D>();
 
-	// are we box selecting, and the finger has moved enough on the touchscreen?
+	// 박스 선택 중이고 터치스크린에서 손가락이 충분히 움직였습니까?
 	if (bSelectionModifier && !StartingSecondFingerPosition.Equals(CurrentSecondFingerPosition, 10.0f))
 	{
-		// update the current interaction position
+		// 현재 상호작용 위치 업데이트
 		CurrentInteractionPosition = CurrentSecondFingerPosition;
 
-		// update the selection box on the HUD
+		// HUD의 선택 박스 업데이트
 		if (StrategyHUD)
 		{
 			const FVector2D DragSize = CurrentSecondFingerPosition - StartingSecondFingerPosition;
@@ -385,13 +385,13 @@ void AStrategyPlayerController::TouchSecondaryTriggered(const FInputActionValue&
 void AStrategyPlayerController::TouchSecondaryCompleted(const FInputActionValue& Value)
 {
 
-	// lower the selection modifier flag
+	// 선택 수정자 플래그 해제
 	bSelectionModifier = false;
 
-	// save the last box selection time
+	// 마지막 박스 선택 시간 저장
 	LastBoxSelectTime = GetWorld()->GetRealTimeSeconds();
 
-	// hide the selection box on the HUD
+	// HUD에서 선택 박스 숨기기
 	if (StrategyHUD)
 	{
 		StrategyHUD->DragSelectUpdate(FVector2D::ZeroVector, FVector2D::ZeroVector, FVector2D::ZeroVector, false);
@@ -401,7 +401,7 @@ void AStrategyPlayerController::TouchSecondaryCompleted(const FInputActionValue&
 void AStrategyPlayerController::DoSelectionCommand()
 {
 
-	// do a sphere sweep to look for actors to select
+	// 선택할 액터를 찾기 위해 구체 스윕 수행
 	FHitResult OutHit;
 
 	const FVector Start = CachedSelection;
@@ -420,41 +420,41 @@ void AStrategyPlayerController::DoSelectionCommand()
 
 	GetWorld()->SweepSingleByObjectType(OutHit, Start, End, FQuat::Identity, ObjectParams, InteractionSphere, QueryParams);
 
-	// if we're using the mouse and are not holding the selection modifier key, deselect any units first
+	// 마우스를 사용 중이고 선택 수정자 키를 누르고 있지 않으면 먼저 모든 유닛 선택 해제
 	if (InputMode == SIM_Mouse && !bSelectionModifier)
 	{
 
 		DoDeselectAllCommand();
 	}
 
-	// did we hit a unit?
+	// 유닛에 맞았습니까?
 	if (OutHit.bBlockingHit)
 	{
 
-		// update the target unit
+		// 대상 유닛 업데이트
 		TargetUnit = Cast<AStrategyUnit>(OutHit.GetActor());
 
 		if (TargetUnit)
 		{
 
-			// is the unit already in the controlled list?
+			// 유닛이 이미 제어 목록에 있습니까?
 			if (ControlledUnits.Contains(TargetUnit))
 			{
 
-				// remove the units from the controlled list
+				// 제어 목록에서 유닛 제거
 				ControlledUnits.Remove(TargetUnit);
 
-				// tell the unit it's been deselected
+				// 유닛에게 선택 해제되었음을 알림
 				TargetUnit->UnitDeselected();
 
 			}
 			else
 			{
 
-				// add the unit to the controlled list
+				// 제어 목록에 유닛 추가
 				ControlledUnits.Add(TargetUnit);
 
-				// tell the unit it's been selected
+				// 유닛에게 선택되었음을 알림
 				TargetUnit->UnitSelected();
 
 			}
@@ -464,10 +464,10 @@ void AStrategyPlayerController::DoSelectionCommand()
 	else
 	{
 
-		// are we using touch input?
+		// 터치 입력을 사용 중입니까?
 		if (InputMode == SIM_Touch)
 		{
-			// move all selected units to the target location
+			// 선택한 모든 유닛을 대상 위치로 이동
 			DoMoveUnitsCommand();
 		}
 
@@ -477,27 +477,27 @@ void AStrategyPlayerController::DoSelectionCommand()
 void AStrategyPlayerController::DoSelectAllOnScreenCommand()
 {
 
-	// find all NPCs currently on screen
+	// 현재 화면에 있는 모든 NPC 찾기
 	TArray<AActor*> FoundActors;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AStrategyUnit::StaticClass(), FoundActors);
 
-	// process each actor found
+	// 찾은 각 액터 처리
 	for (AActor* CurrentActor : FoundActors)
 	{
-		// cast back to our unit class
+		// 유닛 클래스로 캐스팅
 		if (AStrategyUnit* CurrentUnit = Cast<AStrategyUnit>(CurrentActor))
 		{
-			// has the actor been recently rendered?
+			// 액터가 최근에 렌더링되었습니까?
 			if (CurrentActor->WasRecentlyRendered(0.2f))
 			{
 
-				// is the actor not on our controlled units list?
+				// 액터가 제어 유닛 목록에 없습니까?
 				if (!ControlledUnits.Contains(CurrentUnit))
 				{
-					// add it to the controlled units list
+					// 제어되는 유닛 목록에 추가
 					ControlledUnits.Add(CurrentUnit);
 
-					// notify it of selection
+					// 선택되었음을 알림
 					CurrentUnit->UnitSelected();
 				}
 			}
@@ -509,10 +509,10 @@ void AStrategyPlayerController::DoSelectAllOnScreenCommand()
 void AStrategyPlayerController::DoDeselectAllCommand()
 {
 
-	// tell each controlled unit it's been deselected
+	// 제어되는 각 유닛에게 선택 해제되었음을 알림
 	for (AStrategyUnit* CurrentUnit : ControlledUnits)
 	{
-		// ensure the unit hasn't been destroyed
+		// 유닛이 파괴되지 않았는지 확인
 		if (IsValid(CurrentUnit))
 		{
 
@@ -520,81 +520,81 @@ void AStrategyPlayerController::DoDeselectAllCommand()
 		}
 	}
 
-	// clear the controlled units list
+	// 제어되는 유닛 목록 지우기
 	ControlledUnits.Empty();
 }
 
 void AStrategyPlayerController::DoDragScrollCommand()
 {
 
-	// choose the cursor position based on the input mode
+	// 입력 모드에 기반한 커서 위치 선택
 	FVector2D WorkingPosition;
 	
 	if (InputMode == EStrategyInputMode::SIM_Mouse)
 	{
 
-		// read the mouse position
+		// 마우스 위치 읽기
 		bool bResult = GetMousePosition(WorkingPosition.X, WorkingPosition.Y);
 
 	}
 	else
 	{
 
-		// read the touch 1 position
+		// 터치 1 위치 읽기
 		bool bPressed;
 		GetInputTouchState(ETouchIndex::Touch1, WorkingPosition.X, WorkingPosition.Y, bPressed);
 
 	}
 
-	// find the difference between the starting interaction position and current coords
+	// 상호작용 시작 위치와 현재 좌표의 차이 찾기
 	const FVector2D InteractionDelta = StartingInteractionPosition - WorkingPosition;
 
 	const FRotator CameraRot(0.0f, -45.0f, 0.0f);
 
-	// rotate and scale the interaction delta
+	// 상호작용 델타 회전 및 스케일 조정
 	const FVector ScrollDelta = CameraRot.RotateVector(FVector(InteractionDelta.X, InteractionDelta.Y, 0.0f)) * DragMultiplier;
 
-	// apply the world offset to the controlled pawn
+	// 제어되는 폰에 월드 오프셋 적용
 	ControlledPawn->AddActorWorldOffset(ScrollDelta);
 }
 
 void AStrategyPlayerController::DoMoveUnitsCommand()
 {
 
-	// set the movement goal
+	// 이동 목표 설정
 	FVector CurrentMoveGoal;
 
 	if (InputMode == EStrategyInputMode::SIM_Mouse)
 	{
 
-		// set the cached interaction point as our move goal
+		// 캐시된 상호작용 지점을 이동 목표로 설정
 		CurrentMoveGoal = CachedInteraction;
 
 	}
 	else
 	{
 
-		// set the cached selection as our move goal
+		// 캐시된 선택 영역을 이동 목표로 설정
 		CurrentMoveGoal = CachedSelection;
 
 	}
 
-	// get the closest selected unit to the move goal. This will be our lead unit
+	// 이동 목표에 가장 가까운 선택된 유닛 가져오기. 이 유닛이 리드 유닛이 됩니다.
 	AStrategyUnit* Closest = GetClosestSelectedUnitToLocation(CurrentMoveGoal);
 
-	// this will be set to true if any of the move requests fail
+	// 이동 요청 중 하나라도 실패하면 true로 설정됩니다.
 	bool bInteractionFailed = false;
 
-	// process each unit in the controlled list
+	// 제어 목록의 각 유닛 처리
 	for (AStrategyUnit* CurrentUnit : ControlledUnits)
 	{
 		if (IsValid(CurrentUnit))
 		{
 
-			// stop the unit
+			// 유닛 정지
 			CurrentUnit->StopMoving();
 
-			// move the lead unit to the goal, all other units to random navigable points around it
+			// 리드 유닛을 목표 지점으로 이동하고, 나머지 유닛은 그 주변의 무작위 항행 가능 지점으로 이동
 			FVector MoveGoal = CurrentMoveGoal;
 
 			if (CurrentUnit != Closest)
@@ -603,46 +603,46 @@ void AStrategyPlayerController::DoMoveUnitsCommand()
 				UNavigationSystemV1::K2_GetRandomLocationInNavigableRadius(GetWorld(), CurrentMoveGoal, MoveGoal, InteractionRadius * 0.66f);
 			}
 
-			// subscribe to the unit's move completed delegate
+			// 유닛의 이동 완료 델리게이트 구독
 			CurrentUnit->OnMoveCompleted.AddDynamic(this, &AStrategyPlayerController::OnMoveCompleted);
 
-			// set up movement to the goal location
+			// 목표 위치로의 이동 설정
 			if (!CurrentUnit->MoveToLocation(MoveGoal, InteractionRadius * 0.66f))
 			{
-				// the move request failed, so flag it
+				// 이동 요청이 실패했으므로 플래그 설정
 				bInteractionFailed = true;
 			}
 		}
 
 	}
 
-	// play the cursor feedback depending on whether our move succeeded or not
+	// 이동 성공 여부에 따라 커서 피드백 재생
 	BP_CursorFeedback(CachedInteraction, !bInteractionFailed);
 
 }
 
 void AStrategyPlayerController::OnMoveCompleted(AStrategyUnit* MovedUnit)
 {
-	// is the unit valid?
+	// 유닛이 유효합니까?
 	if (IsValid(MovedUnit))
 	{
-		// unsubscribe from the delegate
+		// 델리게이트 구독 취소
 		MovedUnit->OnMoveCompleted.RemoveDynamic(this, &AStrategyPlayerController::OnMoveCompleted);
 		
-		// skip if interactions are locked
+		// 상호작용이 잠겨 있으면 건너뛰기
 		if (!bAllowInteraction)
 		{
 			return;
 		}
 
-		// disallow additional interactions until we reset
+		// 초기화될 때까지 추가 상호작용 방지
 		bAllowInteraction = false;
 
-		// is the unit close enough to the cached interaction location?
+		// 유닛이 캐시된 상호작용 위치에 충분히 가깝습니까?
 		if(FVector::Dist2D(CachedInteraction, MovedUnit->GetActorLocation()) < InteractionRadius)
 		{
 
-			// do an overlap test to find nearby interactive objects
+			// 인접한 상호작용 가능한 객체를 찾기 위해 오버랩 테스트 수행
 			TArray<FOverlapResult> OutOverlaps;
 
 			FCollisionShape CollisionSphere;
@@ -676,25 +676,25 @@ void AStrategyPlayerController::OnMoveCompleted(AStrategyUnit* MovedUnit)
 
 AStrategyUnit* AStrategyPlayerController::GetClosestSelectedUnitToLocation(FVector TargetLocation)
 {
-	// closest unit and distance
+	// 가장 가까운 유닛과 거리
 	AStrategyUnit* OutUnit = nullptr;
 	float Closest = 0.0f;
 
-	// process each unit on the list
+	// 목록의 각 유닛 처리
 	for (AStrategyUnit* CurrentUnit : ControlledUnits)
 	{
 		if (CurrentUnit != nullptr)
 		{
-			// have we selected a unit already?
+			// 이미 유닛을 선택했습니까?
 			if (OutUnit != nullptr)
 			{
-				// calculate the squared distance to the target location
+				// 대상 위치까지의 거리 제곱 계산
 				float Dist = FVector::DistSquared2D(TargetLocation, CurrentUnit->GetActorLocation());
 
-				// is this unit closer?
+				// 이 유닛이 더 가깝습니까?
 				if (Dist < Closest)
 				{
-					// update the closest unit and distance
+					// 가장 가까운 유닛 및 거리 업데이트
 					OutUnit = CurrentUnit;
 					Closest = Dist;
 				}
@@ -703,23 +703,23 @@ AStrategyUnit* AStrategyPlayerController::GetClosestSelectedUnitToLocation(FVect
 			else
 			{
 
-				// no previously selected unit, so use this one
+				// 이전에 선택한 유닛이 없으므로 이 유닛 사용
 				OutUnit = CurrentUnit;
 
-				// initialize the closest distance
+				// 가장 가까운 거리 초기화
 				Closest = FVector::DistSquared2D(TargetLocation, CurrentUnit->GetActorLocation());
 			}
 		}
 		
 	}
 
-	// return the selected unit
+	// 반환 the selected unit
 	return OutUnit;
 }
 
 FVector2D AStrategyPlayerController::GetMouseLocation()
 {
-	// attempt to get the mouse position from this PC
+	// 이 PC에서 마우스 위치 가져오기 시도
 	float MouseX, MouseY;
 
 	if (GetMousePosition(MouseX, MouseY))
@@ -727,18 +727,18 @@ FVector2D AStrategyPlayerController::GetMouseLocation()
 		return FVector2D(MouseX, MouseY);
 	}
 
-	// return an invalid vector
+	// 반환 an invalid vector
 	return FVector2D::ZeroVector;
 }
 
 bool AStrategyPlayerController::GetLocationUnderCursor(FVector& Location)
 {
-	// trace the visibility channel at the cursor location
+	// 커서 위치에서 가시성 채널 트레이스
 	FHitResult OutHit;
 
 	GetHitResultUnderCursorByChannel(SelectionTraceChannel, true, OutHit);
 
-	// if there was a blocking hit, return the hit location
+	// 블로킹 히트가 있으면 히트 위치 반환
 	if (OutHit.bBlockingHit)
 	{
 		Location = OutHit.Location;
@@ -750,7 +750,7 @@ bool AStrategyPlayerController::GetLocationUnderCursor(FVector& Location)
 
 FVector AStrategyPlayerController::ProjectTouchPointToWorldSpace()
 {
-	// get the touch coordinates for the first finger
+	// 첫 번째 손가락의 터치 좌표 가져오기
 	float TouchX, TouchY = 0.0f;
 	bool bPressed = false;
 
@@ -759,16 +759,16 @@ FVector AStrategyPlayerController::ProjectTouchPointToWorldSpace()
 	FVector WorldLocation = FVector::ZeroVector;
 	FVector WorldDirection = FVector::ZeroVector;
 
-	// deproject the coords into world space
+	// 좌표를 월드 공간으로 디프로젝트
 	if (DeprojectScreenPositionToWorld(TouchX, TouchY, WorldLocation, WorldDirection))
 	{
-		// intersect with a horizontal plane and return the resulting point
+		// 수평 평면과 교차하고 결과 지점 반환
 		const FPlane IntersectPlane(FVector::ZeroVector, FVector::UpVector);
 
 		return FMath::LinePlaneIntersection(WorldLocation, WorldLocation + (WorldDirection * 100000.0f), IntersectPlane);
 	}
 
-	// failed to deproject, return a zero vector
+	// 디프로젝트 실패, 영벡터 반환
 	return FVector::ZeroVector;
 }
 
@@ -779,25 +779,25 @@ void AStrategyPlayerController::ResetInteraction()
 
 void AStrategyPlayerController::CheckTouchTap(bool& bTapped, bool& bDoubleTapped)
 {
-	// get the current game time
+	// 현재 게임 시간 가져오기
 	const float GameTime = GetWorld()->GetRealTimeSeconds();
 
-	// if the player released touch before the max allowed time since press, we have a tap
+	// 누른 후 최대 허용 시간 이전에 플레이어가 터치를 해제하면 탭입니다.
 	bTapped = (GameTime - LastTapPressTime) < TouchTapMaxAllowedTime;
 
 	if (bTapped)
 	{
-		// we have a double tap if another tap happened before the last release time
+		// 마지막 해제 시간 전에 다른 탭이 발생했으면 더블 탭입니다.
 		if ((GameTime - LastTapReleaseTime) < TouchDoubleTapMaxAllowedTime)
 		{
-			// increase the tap counter
+			// 탭 카운터 증가
 			++TapCount;
 
 		}
 		else
 		{
 
-			// reset the tap counter
+			// 탭 카운터 초기화
 			TapCount = 0;
 		}
 
@@ -805,13 +805,13 @@ void AStrategyPlayerController::CheckTouchTap(bool& bTapped, bool& bDoubleTapped
 	else
 	{
 
-		// reset the tap counter
+		// 탭 카운터 초기화
 		TapCount = 0;
 	}
 
-	// we have a double tap if the tap count is not zero
+	// 탭 카운트가 0이 아니면 더블 탭입니다.
 	bDoubleTapped = TapCount >= 1;
 
-	// save the tap release time
+	// 탭 뗀 시간 저장
 	LastTapReleaseTime = GameTime;
 }

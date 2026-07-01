@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// 에픽게임즈 저작권 소유.
 
 #include "Character/OpYBCharacter.h"
 #include "UObject/ConstructorHelpers.h"
@@ -23,21 +23,21 @@
 
 AOpYBCharacter::AOpYBCharacter()
 {
-	// Set size for player capsule
+	// 플레이어 캡슐 크기 설정
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
-	// Don't rotate character to camera direction
+	// 카메라 방향으로 캐릭터를 회전시키지 않음
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 
-	// Configure character movement
+	// 캐릭터 무브먼트 설정
 	GetCharacterMovement()->bOrientRotationToMovement = false; // 마우스 커서를 바라봐야 하므로 이동 방향 회전 끔
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 640.f, 0.f);
 	GetCharacterMovement()->bConstrainToPlane = true; // 구르기나 점프 등을 위해 평면 제약 해제
 	GetCharacterMovement()->bSnapToPlaneAtStart = false;
 
-	// Create the camera boom component
+	// 카메라 붐 컴포넌트 생성
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 
 	CameraBoom->SetupAttachment(RootComponent);
@@ -46,25 +46,25 @@ AOpYBCharacter::AOpYBCharacter()
 	CameraBoom->SetRelativeRotation(FRotator(-60.f, 0.f, 0.f));
 	CameraBoom->bDoCollisionTest = false;
 
-	// Create the camera component
+	// 카메라 컴포넌트 생성
 	TopDownCameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("TopDownCamera"));
 	TopDownCameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	TopDownCameraComponent->bUsePawnControlRotation = false;
 
-	// Activate ticking in order to update the cursor every frame.
+	// 매 프레임 커서를 업데이트하기 위해 틱을 활성화합니다.
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
 
-	// Combat Defaults
+	// 전투 기본값
 	FireRate = 0.1f; // 0.1초마다 1발 (단발 사격 시 답답함 방지)
 	LastFireTime = 0.0f;
 
-	// Ammo Defaults
+	// 탄약 기본값
 	MaxAmmo = 3;
 	CurrentAmmo = MaxAmmo;
 	ReloadTimePerAmmo = 3.0f; // 1초당 1발 충전
 
-	// Overhead UI Component
+	// 오버헤드 UI 컴포넌트
 	OverheadUIComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("OverheadUI"));
 	OverheadUIComponent->SetupAttachment(RootComponent);
 	OverheadUIComponent->SetRelativeLocation(FVector(0.f, 0.f, 120.f));
@@ -75,7 +75,7 @@ AOpYBCharacter::AOpYBCharacter()
 	MaxUltCharge = 3;
 	CurrentUltCharge = 0;
 
-	// Removed UltimateTrajectoryMesh
+	// UltimateTrajectoryMesh 제거됨
 	// ==========================================
 	// 초기 스탯 설정
 	// ==========================================

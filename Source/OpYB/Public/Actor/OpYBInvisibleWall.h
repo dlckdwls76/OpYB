@@ -12,15 +12,15 @@ class OPYB_API AOpYBInvisibleWall : public AActor
 	GENERATED_BODY()
 	
 public:	
-	// Sets default values for this actor's properties
+	// 기본값을 설정합니다. for this actor's properties
 	AOpYBInvisibleWall();
 
 protected:
-	// Called when the game starts or when spawned
+	// 게임이 시작되거나 스폰될 때 호출됩니다.
 	virtual void BeginPlay() override;
 
 public:	
-	// Box collision component to block movement
+	// 이동을 차단하는 박스 충돌 컴포넌트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UBoxComponent> CollisionBox;
 };

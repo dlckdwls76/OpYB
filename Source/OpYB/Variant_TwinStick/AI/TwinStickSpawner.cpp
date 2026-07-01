@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// 에픽게임즈 저작권 소유.
 
 
 #include "TwinStickSpawner.h"
@@ -20,7 +20,7 @@ void ATwinStickSpawner::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	// find the recast navmesh actor on the level
+	// 레벨에서 리캐스트 내비메시 액터 찾기
 	TArray<AActor*> ActorList;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARecastNavMesh::StaticClass(), ActorList);
 
@@ -33,10 +33,10 @@ void ATwinStickSpawner::BeginPlay()
 
 	}
 
-	// set up the spawn timer
+	// 스폰 타이머 설정
 	GetWorld()->GetTimerManager().SetTimer(SpawnGroupTimer, this, &ATwinStickSpawner::SpawnNPCGroup, SpawnGroupDelay, true);
 
-	// spawn the first group of NPCs
+	// 첫 번째 NPC 그룹 스폰
 	SpawnNPCGroup();
 }
 
@@ -44,17 +44,17 @@ void ATwinStickSpawner::EndPlay(EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
 
-	// clear the spawn timers
+	// 스폰 타이머 지우기
 	GetWorld()->GetTimerManager().ClearTimer(SpawnGroupTimer);
 	GetWorld()->GetTimerManager().ClearTimer(SpawnNPCTimer);
 }
 
 void ATwinStickSpawner::SpawnNPCGroup()
 {
-	// reset the group spawn counter
+	// 그룹 스폰 카운터 초기화
 	SpawnCount = 0;
 
-	// check if we're still under the max NPC cap
+	// 아직 최대 NPC 제한 미만인지 확인
 	if (ATwinStickGameMode* GM = Cast<ATwinStickGameMode>(GetWorld()->GetAuthGameMode()))
 	{
 		if (GM->CanSpawnNPCs())
@@ -68,20 +68,20 @@ void ATwinStickSpawner::SpawnNPC()
 {
 	FTransform SpawnTransform;
 
-	// find a random point around the spawner
+	// 스포너 주변의 무작위 지점 찾기
 	FVector SpawnLoc;
 	if (UNavigationSystemV1::K2_GetRandomReachablePointInRadius(GetWorld(), GetActorLocation(), SpawnLoc, SpawnRadius, NavData))
 	{
 		SpawnTransform.SetLocation(SpawnLoc);
 
-		// spawn the NPC
+		// NPC 스폰
 		ATwinStickNPC* NPC = GetWorld()->SpawnActor<ATwinStickNPC>(NPCClass, SpawnTransform);
 	}
 
-	// increase the spawn counter
+	// 스폰 카운터 증가
 	++SpawnCount;
 
-	// do we still have enemies left to spawn?
+	// 스폰할 적이 아직 남아 있습니까?
 	if (SpawnCount < SpawnGroupSize)
 	{
 		GetWorld()->GetTimerManager().SetTimer(SpawnNPCTimer, this, &ATwinStickSpawner::SpawnNPC, FMath::RandRange(MinSpawnDelay, MaxSpawnDelay), false);

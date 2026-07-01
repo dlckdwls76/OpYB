@@ -13,15 +13,15 @@ class OPYB_API AOpYBUltimateProjectile : public AActor
 	GENERATED_BODY()
 	
 public:	
-	// Sets default values for this actor's properties
+	// 기본값을 설정합니다. for this actor's properties
 	AOpYBUltimateProjectile();
 
 protected:
-	// Called when the game starts or when spawned
+	// 게임이 시작되거나 스폰될 때 호출됩니다.
 	virtual void BeginPlay() override;
 
 public:	
-	// Called every frame
+	// 매 프레임 호출됩니다.
 	virtual void Tick(float DeltaTime) override;
 
 	/** Sphere collision component */

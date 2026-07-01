@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// 에픽게임즈 저작권 소유.
 
 #pragma once
 
@@ -163,7 +163,7 @@ protected:
 	TArray<AStrategyUnit*> ControlledUnits;
 
 	///////////////////////////////////
-	// Touchscreen enhanced input workaround
+	// 터치스크린 향상된 입력 해결 방법
 
 	/** Game time when the player last started tapping the touchscreen */
 	float LastTapPressTime = 0.0f;

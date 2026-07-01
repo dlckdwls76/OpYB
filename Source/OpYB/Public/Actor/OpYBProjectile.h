@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// 프로젝트 세팅의 설명 페이지에 저작권 공지를 채우세요.
 
 #pragma once
 
@@ -15,15 +15,15 @@ class OPYB_API AOpYBProjectile : public AActor
 	GENERATED_BODY()
 	
 public:	
-	// Sets default values for this actor's properties
+	// 기본값을 설정합니다. for this actor's properties
 	AOpYBProjectile();
 
 protected:
-	// Called when the game starts or when spawned
+	// 게임이 시작되거나 스폰될 때 호출됩니다.
 	virtual void BeginPlay() override;
 
 public:	
-	// Called every frame
+	// 매 프레임 호출됩니다.
 	virtual void Tick(float DeltaTime) override;
 
 	/** Sphere collision component */

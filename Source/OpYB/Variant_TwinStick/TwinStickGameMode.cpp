@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// 에픽게임즈 저작권 소유.
 
 
 #include "TwinStickGameMode.h"
@@ -9,7 +9,7 @@
 
 void ATwinStickGameMode::BeginPlay()
 {
-	// create the UI widget if it hasn't already
+	// 아직 생성되지 않은 경우 UI 위젯 생성
 	CreateUI();
 }
 
@@ -17,113 +17,113 @@ void ATwinStickGameMode::EndPlay(EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
 	
-	// clear the combo timer
+	// 콤보 타이머 초기화
 	GetWorld()->GetTimerManager().ClearTimer(ComboTimer);
 }
 
 void ATwinStickGameMode::ItemUsed(int32 Value)
 {
-	// ensure the UI widget is available
+	// UI 위젯을 사용할 수 있는지 확인
 	if (!UIWidget)
 	{
 		CreateUI();
 	}
 
-	// update the UI
+	// UI 업데이트
 	UIWidget->UpdateItems(Value);
 }
 
 void ATwinStickGameMode::ScoreUpdate(int32 Value)
 {
-	// multiply the base score by the combo multiplier and add it to the score
+	// 기본 점수에 콤보 배율을 곱하고 점수에 추가
 	Score += Value * Combo;
 
-	// update the UI
+	// UI 업데이트
 	UIWidget->UpdateScore(Score);
 
-	// update the combo multiplier
+	// 콤보 배율 업데이트
 	ComboUpdate();
 }
 
 void ATwinStickGameMode::CreateUI()
 {
-	// avoid creating the UI multiple times
+	// UI를 여러 번 생성하지 않도록 방지
 	if(UIWidget)
 		return;
 
-	// create the UI widget and add it to the viewport
+	// UI 위젯을 생성하고 뷰포트에 추가
 	UIWidget = CreateWidget<UTwinStickUI>(UGameplayStatics::GetPlayerController(GetWorld(), 0), UIWidgetClass);
 	UIWidget->AddToViewport(0);
 }
 
 void ATwinStickGameMode::ComboUpdate()
 {
-	// return
+	// 반환
 	if (Combo > ComboCap)
 	{
 		return;
 	}
 
-	// update the combo increment
+	// 콤보 증가량 업데이트
 	++ComboIncrement;
 
-	// is it time to increase the multiplier?
+	// 배율을 증가시킬 시간입니까?
 	if (ComboIncrement > ComboIncrementMax)
 	{
-		// reset the combo increment
+		// 콤보 증가량 초기화
 		ComboIncrement = 0;
 
-		// increase the combo multiplier
+		// 콤보 배율 증가
 		++Combo;
 
-		// update the UI
+		// UI 업데이트
 		UIWidget->UpdateCombo(Combo);
 
 	}
 
-	// reset the cooldown timer
+	// 쿨타임 타이머 초기화
 	ResetComboCooldown();
 }
 
 void ATwinStickGameMode::ResetComboCooldown()
 {
-	// reset the combo cooldown timer
+	// 콤보 쿨타임 타이머 초기화
 	GetWorld()->GetTimerManager().SetTimer(ComboTimer, this, &ATwinStickGameMode::ResetCombo, ComboCooldown, false);
 }
 
 void ATwinStickGameMode::ResetCombo()
 {
-	// is the combo multiplier above min?
+	// 콤보 배율이 최소값 이상입니까?
 	if (Combo > 1)
 	{
-		// reset the combo increment
+		// 콤보 증가량 초기화
 		ComboIncrement = 0;
 
-		// tick down the multiplier
+		// 배율 감소 틱
 		--Combo;
 
-		// update the UI
+		// UI 업데이트
 		UIWidget->UpdateCombo(Combo);
 
-		// reset the cooldown timer
+		// 쿨타임 타이머 초기화
 		ResetComboCooldown();
 	}
 }
 
 bool ATwinStickGameMode::CanSpawnNPCs()
 {
-	// is the NPC counter under the cap?
+	// NPC 카운터가 상한 미만입니까?
 	return NPCCount < NPCCap;
 }
 
 void ATwinStickGameMode::IncreaseNPCs()
 {
-	// increase the NPC counter
+	// NPC 카운터 증가
 	++NPCCount;
 }
 
 void ATwinStickGameMode::DecreaseNPCs()
 {
-	// decrease the NPC counter
+	// NPC 카운터 감소
 	--NPCCount;
 }

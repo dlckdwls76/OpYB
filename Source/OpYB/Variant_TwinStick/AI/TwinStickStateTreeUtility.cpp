@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// 에픽게임즈 저작권 소유.
 
 
 #include "TwinStickStateTreeUtility.h"
@@ -11,13 +11,13 @@
 
 EStateTreeRunStatus FStateTreeGetPlayerTask::Tick(FStateTreeExecutionContext& Context, const float DeltaTime) const
 {
-	// get the instance data
+	// 인스턴스 데이터 가져오기
 	FInstanceDataType& InstanceData = Context.GetInstanceData(*this);
 
-	// get the pawn possessed by the first local player
+	// 첫 번째 로컬 플레이어가 빙의한 폰 가져오기
 	InstanceData.TargetPlayerCharacter = Cast<ACharacter>(UGameplayStatics::GetPlayerPawn(InstanceData.Character, 0));
 
-	// keep the task running
+	// 태스크를 계속 실행 상태로 유지
 	return EStateTreeRunStatus::Running;
 }
 
