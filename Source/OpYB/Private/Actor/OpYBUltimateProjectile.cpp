@@ -17,13 +17,25 @@ AOpYBUltimateProjectile::AOpYBUltimateProjectile()
 	bReplicates = true;
 
 	CollisionComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
+	
 	// 충돌 구체가 너무 크면 스폰되자마자 바닥(Landscape)에 파묻혀서 충돌 인식이 씹히고 땅으로 꺼지게 됩니다. 
-	// 그래서 시각적 크기(Mesh)는 유지하되 물리 충돌체 크기만 줄입니다.
 	CollisionComp->InitSphereRadius(30.0f);
-	CollisionComp->SetCollisionProfileName("BlockAllDynamic"); // 랜드스케이프를 포함한 모든 것과 무조건 부딪히게 설정
-	CollisionComp->OnComponentHit.AddDynamic(this, &AOpYBUltimateProjectile::OnHit);
-	CollisionComp->OnComponentBeginOverlap.AddDynamic(this, &AOpYBUltimateProjectile::OnOverlapBegin);
-
+	
+	// 커스텀 충돌 설정: 바닥(Landscape)은 땅으로 꺼지지 않게 막고(Block), 캐릭터(Pawn)는 뚫고 가면서(Overlap) 터지게 만듭니다.
+	CollisionComp->SetCollisionProfileName("Custom");
+	CollisionComp->SetCollisionObjectType(ECC_WorldDynamic);
+	CollisionComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	
+	// 기본적으로 세상의 모든 것을 완전히 무시(통과)하게 만듭니다.
+	CollisionComp->SetCollisionResponseToAllChannels(ECR_Ignore);
+	
+	// 오직 딱 두 가지만 부딪히게 설정합니다:
+	// 1. 바닥/벽 (WorldStatic, WorldDynamic): 멈춰 서야 하므로 Block (유저 분의 바닥이 WorldDynamic으로 되어있어서 둘 다 막습니다)
+	CollisionComp->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+	CollisionComp->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Block);
+	// 2. 캐릭터/적 (Pawn): 멈춰버리면 허공에 뜰 수 있으므로 부드럽게 통과하며 감지(Overlap)
+	CollisionComp->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	
 	RootComponent = CollisionComp;
 
 	MeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComp"));
@@ -50,6 +62,16 @@ AOpYBUltimateProjectile::AOpYBUltimateProjectile()
 void AOpYBUltimateProjectile::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// 블루프린트 오버라이드 버그를 방지하기 위해 런타임(BeginPlay)에 이벤트 강제 연결
+	if (!CollisionComp->OnComponentHit.IsAlreadyBound(this, &AOpYBUltimateProjectile::OnHit))
+	{
+		CollisionComp->OnComponentHit.AddDynamic(this, &AOpYBUltimateProjectile::OnHit);
+	}
+	if (!CollisionComp->OnComponentBeginOverlap.IsAlreadyBound(this, &AOpYBUltimateProjectile::OnOverlapBegin))
+	{
+		CollisionComp->OnComponentBeginOverlap.AddDynamic(this, &AOpYBUltimateProjectile::OnOverlapBegin);
+	}
 
 	// 발사자(자신)와 쏘자마자 부딪혀서 제자리에서 터지는 것 방지
 	if (GetInstigator())

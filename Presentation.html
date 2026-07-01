@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>프로젝트 발표 자료</title>
+    <!-- Reveal.js CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.css">
+    <!-- 테마 변경 가능 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/theme/night.min.css">
+    <style>
+        .image-placeholder {
+            width: 100%;
+            height: 250px;
+            border: 3px dashed #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(255, 255, 255, 0.05);
+            margin: 15px 0;
+            border-radius: 10px;
+            color: #888;
+        }
+        .flex-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 100%;
+            gap: 40px;
+        }
+        .text-sm { font-size: 0.65em !important; }
+        .text-md { font-size: 0.75em !important; }
+        .box-title {
+            font-size: 0.9em;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .flow-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 50px;
+        }
+        .flow-item {
+            background-color: #2196F3;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-size: 0.6em;
+            font-weight: bold;
+        }
+        .flow-arrow { font-size: 0.8em; color: #aaa; }
+        .highlight { color: #FFC107; font-size: 0.85em; } /* 노란 글씨 기본 사이즈 약간 축소 */
+        ul { text-align: left; }
+        li { margin-bottom: 12px; }
+        .tech-note {
+            font-size: 0.85em;
+            color: #aaa;
+            display: block;
+            margin-top: 5px;
+            padding-left: 10px;
+            border-left: 3px solid #666;
+        }
+        /* 제목 전체 크기 약간 축소 */
+        .reveal h1 { font-size: 2.2em !important; }
+        .reveal h2 { font-size: 1.25em !important; margin-bottom: 30px !important; }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+            
+            <!-- 1. 프로젝트 이름 -->
+            <section>
+                <div id="title-container" style="cursor: pointer; position: relative; display: inline-block; padding: 20px;" onclick="changeTitle()">
+                    <h1 id="old-title" style="transition: 0.3s; margin: 0; font-size: 2.2em !important;">Operation : Yellow Break</h1>
+                    <!-- 대문짝만한 X 표시 (처음엔 숨김) -->
+                    <div id="cross-mark" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 8em; color: rgba(244, 67, 54, 0.9); display: none; font-weight: bold; pointer-events: none; text-shadow: 2px 2px 10px #000;">X</div>
+                </div>
+                
+                <h1 id="new-title" style="display: none; color: #FFEB3B; margin: 0; font-size: 2.8em !important; animation: fadeInUp 0.5s;">
+                    Operation : Breakout
+                    <br><span style="font-size: 0.4em; color: #aaa;">(오퍼레이션: 브레이크아웃)</span>
+                </h1>
+                
+                <p id="title-hint" style="color: #aaa; font-size: 0.8em; margin-top: 30px; animation: pulse 2s infinite;">(글씨를 클릭해보세요!)</p>
+                
+                <script>
+                    function changeTitle() {
+                        const oldTitle = document.getElementById('old-title');
+                        const crossMark = document.getElementById('cross-mark');
+                        const newTitle = document.getElementById('new-title');
+                        const container = document.getElementById('title-container');
+                        const hint = document.getElementById('title-hint');
+                        
+                        if(crossMark.style.display === 'block') return; // 중복 클릭 방지
+                        
+                        // 1단계: X 표시 띄우고 기존 이름 회색으로 만들기
+                        crossMark.style.display = 'block';
+                        oldTitle.style.color = '#444';
+                        hint.style.display = 'none';
+                        
+                        // 2단계: 0.8초 뒤에 짠! 하고 새 이름으로 변경
+                        setTimeout(() => {
+                            container.style.display = 'none';
+                            newTitle.style.display = 'block';
+                        }, 800);
+                    }
+                </script>
+                <style>
+                    @keyframes fadeInUp {
+                        from { opacity: 0; transform: translateY(30px); }
+                        to { opacity: 1; transform: translateY(0); }
+                    }
+                    @keyframes pulse {
+                        0% { opacity: 0.3; }
+                        50% { opacity: 1; }
+                        100% { opacity: 0.3; }
+                    }
+                </style>
+            </section>
+
+            <!-- 2. 레퍼런스 게임 -->
+            <section>
+                <h2 style="margin-bottom: 40px;">레퍼런스 게임</h2>
+                <div class="flex-container">
+                    <div style="flex: 1;">
+                        <div class="box-title">덕코프</div>
+                        <img src="OpYBScreenShoot/덕코프 이동방식.gif" alt="덕코프 이동방식" style="width: 100%; height: 250px; object-fit: contain; border: 3px dashed #666; border-radius: 10px; background-color: rgba(255, 255, 255, 0.05); margin: 15px 0;" onerror="this.src='https://via.placeholder.com/800x400?text=Image+Not+Found'">
+                        <ul class="text-sm">
+                            <li>게임 조작 방식을 차용</li>
+                        </ul>
+                    </div>
+                    <div style="flex: 1;">
+                        <div class="box-title" style="color: #E91E63;">브롤스타즈</div>
+                        <img src="OpYBScreenShoot/브롤스타즈 로비.png" alt="Brawlstars Reference" style="width: 100%; height: 250px; object-fit: contain; border: 3px dashed #666; border-radius: 10px; background-color: rgba(255, 255, 255, 0.05); margin: 15px 0;" onerror="this.src='https://via.placeholder.com/800x400?text=Image+Not+Found'">
+                        <ul class="text-sm">
+                            <li>게임 방식 및 인게임 멀티기능 차용</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. 프로젝트 개요 및 게임 종료 조건 소개 -->
+            <section>
+                <h2>프로젝트 개요 및 종료 조건</h2>
+                <ul class="text-md" style="line-height: 1.8; margin-top: 30px;">
+                    <li><strong>프로젝트 개요:</strong> 탑다운 뷰 기반의 배틀로얄 멀티플레이어 게임</li>
+                    <li style="margin-top: 20px;">
+                        <strong>게임 종료 조건:</strong>
+                        <ul>
+                            <li>한 사람만 살아남고, 모든 캐릭터가 부활 중(사망 상태)일 때 게임 종료</li>
+                            <li>솔로 모드 기반 최후의 1인 생존 방식</li>
+                        </ul>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- 4. 프로토타입 구현 내용 (1) - 캐릭터 & 전투 -->
+            <section>
+                <h2>프로토타입 구현 내용 <span class="highlight" style="font-size: 0.6em;">(캐릭터/전투)</span></h2>
+                <ul class="text-md">
+                    <li><strong>캐릭터 생성</strong>
+                        <span class="tech-note">추후 로비에서 원하는 캐릭터를 선택하고 플레이를 누르면 해당 캐릭터가 <b>생성(SpawnActor)</b>되어 조작할 수 있도록 기본 로직을 구현해 두었습니다.</span>
+                    </li>
+                    <li><strong>기본 사격</strong>
+                        <span class="tech-note">마우스 좌클릭 시 <b>Projectile(발사체) 액터</b>를 스폰(Spawn)하고 날려 보내는 방식으로 기본 총알 발사를 구현했습니다.</span>
+                    </li>
+                    <li><strong>궁극기 시스템</strong>
+                        <span class="tech-note">기본 공격 적중 시 내부 카운트 변수를 증가시켜 <b>3회 적중 시 게이지가 100%</b> 차도록 로직을 작성하였고, 조건문을 통해 궁극기를 사용할 수 있는 상태로 전환되게 구현했습니다.</span>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- 4. 프로토타입 구현 내용 (2) - 시스템 & 멀티플레이 -->
+            <section>
+                <h2>프로토타입 구현 내용 <span class="highlight" style="font-size: 0.6em;">(시스템/멀티)</span></h2>
+                <ul class="text-sm">
+                    <li><strong>캐릭터 사망 및 인원 표시</strong>
+                        <span class="tech-note">체력이 0이 되어 사망 시 <b>GameState</b>를 통해 전체 남은 인원 수 변수를 감소시키고 이를 모든 플레이어의 UI에 갱신하도록 구현했습니다.</span>
+                    </li>
+                    <li><strong>사망 타이머</strong>
+                        <span class="tech-note">사망 시 남은 부활 시간을 표시하기 위해 <b>Timer Manager(타이머 핸들러)</b>를 사용하여 UI에 실시간으로 남은 시간이 카운트다운 되도록 구현했습니다.</span>
+                    </li>
+                    <li><strong>UI 동기화 (체력/탄창 vs 궁극기)</strong>
+                        <span class="tech-note">체력 바와 탄창 바는 <b>Replication(리플리케이션)</b>을 사용해 네트워크상에서 모든 클라이언트에 동기화시켰고, <b>궁극기 게이지는 상대가 알지 못하는 전략적 요소</b>로 쓰기 위해 동기화하지 않고 로컬에서만 갱신하도록 구현했습니다.</span>
+                    </li>
+                    <li><strong>배틀로얄 자기장</strong>
+                        <span class="tech-note">맵 중앙을 기준으로 <b>스케일이 서서히 줄어드는 액터</b>를 배치하고, 영역 밖 플레이어에게 <b>Overlap 이벤트와 타이머</b>를 통해 지속 데미지(DoT)를 주도록 구현했습니다.</span>
+                    </li>
+                    <li><strong>카메라 장애물 투명화</strong>
+                        <span class="tech-note">카메라와 캐릭터 사이에 위치한 오브젝트를 <b>LineTrace(라인 트레이스)</b>로 감지한 뒤, 머티리얼의 <b>투명도(Opacity)</b> 파라미터를 조절하여 플레이어의 시야를 가리지 않도록 구현했습니다.</span>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- 5. 핵심 게임 플레이 (1) -->
+            <section>
+                <h2>핵심 게임 플레이</h2>
+                <ul class="text-md" style="line-height: 1.8;">
+                    <li>게임에 접속하면 로비에서 <strong>캐릭터 선택</strong></li>
+                    <li><strong>매칭 씬</strong>으로 전환</li>
+                    <li>매칭이 모두 잡히면 <strong>전투 진행</strong></li>
+                    <li>시작 시 남은 인원이 <span class="highlight">좌측 상단에 표시됨</span></li>
+                    <li>빠른 템포로 <strong>자기장이 줄어듦</strong></li>
+                </ul>
+            </section>
+
+            <!-- 5. 핵심 게임 플레이 (2) : 플로우 -->
+            <section>
+                <h2>게임 진행 사이클</h2>
+                <div class="flow-container">
+                    <div class="flow-item">전체 접속</div>
+                    <div class="flow-arrow">➔</div>
+                    <div class="flow-item" style="background-color: #9C27B0;">로비</div>
+                    <div class="flow-arrow">➔</div>
+                    <div class="flow-item" style="background-color: #FF9800;">매칭 씬 전환</div>
+                    <div class="flow-arrow">➔</div>
+                    <div class="flow-item" style="background-color: #F44336;">전투</div>
+                    <div class="flow-arrow">➔</div>
+                    <div class="flow-item" style="background-color: #607D8B;">종료</div>
+                    <div class="flow-arrow">➔</div>
+                    <div class="flow-item" style="background-color: #9C27B0;">로비</div>
+                </div>
+                <p class="text-sm" style="margin-top: 40px; color:#aaa;">최종 게임 플레이 사이클</p>
+            </section>
+
+            <!-- 6. 개발 로드맵 (알파 삭제, 프로토타입/베타/출시 위주) -->
+            <section>
+                <h2>개발 로드맵</h2>
+                <ul class="text-md" style="line-height: 1.8;">
+                    <li><strong class="highlight">[7월 1일] 프로토타입 발표 (현재):</strong> 핵심 전투 및 멀티플레이 기반 시스템 구현 완료</li>
+                    <li><strong>[7월 초순] 베타 마일스톤:</strong> 로비 시스템, 캐릭터 선택, 매칭 UI, 맵 구독 시스템 적용</li>
+                    <li><strong class="highlight">[7월 10일] 프로젝트 최종 완료:</strong> 애니메이션/이펙트 폴리싱, 밸런스 조정 및 최종 마무리</li>
+                </ul>
+            </section>
+
+            <!-- 7. 베타 Todo 리스트 - 로비 UI (이미지 영역 표시) -->
+            <section>
+                <h2>베타 Todo 리스트 <span class="highlight" style="font-size: 0.7em;">[로비 목표]</span></h2>
+                <div style="position: relative; display: inline-block; width: 90%; margin-top: 10px;">
+                    <!-- 제공된 경로 사용 -->
+                    <img src="OpYBScreenShoot/브롤스타즈 로비.png" alt="Lobby Reference" style="width: 100%; border-radius: 10px; display: block;" onerror="this.src='https://via.placeholder.com/800x400?text=Image+Not+Found'">
+                    
+                    <!-- 캐릭터 선택창 -->
+                    <a href="#/char-select" style="display: block; position: absolute; top: 40%; left: 2%; width: 9%; height: 14%; border: 3px solid #FFEB3B; box-shadow: 0 0 15px #FFEB3B; border-radius: 5px; cursor: pointer; transition: 0.2s; background: rgba(255,235,59,0.1); text-decoration: none;">
+                        <span style="background: #FFEB3B; color: black; font-size: 0.4em; font-weight: bold; position: absolute; top: -22px; left: 0; padding: 2px 6px; white-space: nowrap; border-radius: 3px;">캐릭터 선택창 (클릭)</span>
+                    </a>
+                    
+                    <!-- 파티 초대 -->
+                    <div style="position: absolute; top: 55%; left: 26.5%; width: 4.5%; height: 7%; border: 3px solid #00BCD4; box-shadow: 0 0 15px #00BCD4; border-radius: 5px;">
+                        <span style="background: #00BCD4; color: white; font-size: 0.4em; font-weight: bold; position: absolute; top: -22px; left: -15px; padding: 2px 6px; white-space: nowrap; border-radius: 3px;">파티 초대</span>
+                    </div>
+                    <div style="position: absolute; top: 55%; left: 66%; width: 4.5%; height: 7%; border: 3px solid #00BCD4; box-shadow: 0 0 15px #00BCD4; border-radius: 5px;"></div>
+
+                    <!-- 맵 선택 -->
+                    <div style="position: absolute; top: 84%; left: 45.5%; width: 24%; height: 12%; border: 3px solid #4CAF50; box-shadow: 0 0 15px #4CAF50; border-radius: 5px;">
+                        <span style="background: #4CAF50; color: white; font-size: 0.4em; font-weight: bold; position: absolute; top: -22px; left: 0; padding: 2px 6px; white-space: nowrap; border-radius: 3px;">맵 선택 (구독 시스템)</span>
+                    </div>
+
+                    <!-- 게임 플레이 버튼 -->
+                    <div style="position: absolute; top: 79%; left: 72%; width: 25%; height: 15%; border: 3px solid #F44336; box-shadow: 0 0 15px #F44336; border-radius: 5px;">
+                        <span style="background: #F44336; color: white; font-size: 0.4em; font-weight: bold; position: absolute; top: -22px; left: 0; padding: 2px 6px; white-space: nowrap; border-radius: 3px;">게임 플레이 (Ready/Start)</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 7-1. 캐릭터 선택 화면 -->
+            <section id="char-select">
+                <h2>베타 Todo 리스트 <span class="highlight" style="font-size: 0.7em;">[캐릭터 선택 UI]</span></h2>
+                <div style="width: 90%; margin: 10px auto;">
+                    <img src="OpYBScreenShoot/브롤스타즈 캐릭터선택.png" alt="Character Select Reference" style="width: 100%; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.5);" onerror="this.src='https://via.placeholder.com/800x400?text=Image+Not+Found'">
+                    <p class="text-md" style="margin-top: 20px; color:#aaa;">로비에서 캐릭터 버튼을 누르면 전환되는 세부 캐릭터 선택창 UI</p>
+                </div>
+            </section>
+
+            <!-- 7-2. 베타 Todo 리스트 - 매칭 화면 -->
+            <section>
+                <h2>베타 Todo 리스트 <span class="highlight" style="font-size: 0.7em;">[매칭 시스템]</span></h2>
+                <div style="position: relative; display: inline-block; width: 90%; margin-top: 10px;">
+                    <!-- 제공된 경로 사용 -->
+                    <img src="OpYBScreenShoot/브롤스타즈 매칭화면.png" alt="Match Reference" style="width: 100%; border-radius: 10px; display: block;" onerror="this.src='https://via.placeholder.com/800x400?text=Image+Not+Found'">
+                    
+                    <!-- 매칭 인원 표시 -->
+                    <div style="position: absolute; top: 13%; left: 36%; width: 28%; height: 8%; border: 3px solid #FFEB3B; box-shadow: 0 0 15px #FFEB3B; border-radius: 5px;">
+                        <span style="background: #FFEB3B; color: black; font-size: 0.4em; font-weight: bold; position: absolute; top: -22px; left: 0; padding: 2px 6px; white-space: nowrap; border-radius: 3px;">매칭 남은 인원 표시</span>
+                    </div>
+
+                    <!-- 매칭 취소 버튼 -->
+                    <div style="position: absolute; top: 82%; left: 75%; width: 13%; height: 10%; border: 3px solid #F44336; box-shadow: 0 0 15px #F44336; border-radius: 5px;">
+                        <span style="background: #F44336; color: white; font-size: 0.4em; font-weight: bold; position: absolute; top: -22px; left: 0; padding: 2px 6px; white-space: nowrap; border-radius: 3px;">매칭 취소(종료)</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 8. 베타 Todo 리스트 - 인게임 -->
+            <section>
+                <h2 style="margin-bottom: 40px;">베타 Todo 리스트 <br><span style="color: #4CAF50; font-size: 0.7em;">[인게임/전투]</span></h2>
+                <ul class="text-sm" style="line-height: 1.6;">
+                    <li>승리 조건 및 게임 종료 로직 처리</li>
+                    <li>궁극기 및 캐릭터 기본 공격 종류 추가</li>
+                    <li><strong>점멸 기능:</strong> 스페이스바 입력 시 쿨타임이 적용되는 회피/이동 기술 구현</li>
+                    <li><strong>궁극기 상태 표시:</strong> 게이지 충전 후 R 입력 시 마우스 커서 변경</li>
+                    <li><strong>자기장:</strong> 브롤스타즈 쇼다운 모드와 유사한 형태</li>
+                    <li><strong>마우스 커서 보간:</strong> 캐릭터 회전 시 서서히 부드럽게 움직이도록 변경</li>
+                    <li><strong>애니메이션 & 이펙트:</strong> 캐릭터별 공격, 궁극기 이펙트 및 동기화</li>
+                </ul>
+            </section>
+
+        </div>
+    </div>
+
+    <!-- Reveal.js Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: true,
+            transition: 'slide'
+        });
+    </script>
+</body>
+</html>

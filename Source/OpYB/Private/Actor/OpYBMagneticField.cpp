@@ -1,5 +1,6 @@
-	#include "Actor/OpYBMagneticField.h"
+#include "Actor/OpYBMagneticField.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/PostProcessComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Character/OpYBCharacter.h"
 #include "Net/UnrealNetwork.h"
@@ -15,6 +16,19 @@ AOpYBMagneticField::AOpYBMagneticField()
 
 	// Typically a large sphere or cylinder with a translucent material that is set to NoCollision
 	MeshComp->SetCollisionProfileName(TEXT("NoCollision"));
+
+	PostProcessComp = CreateDefaultSubobject<UPostProcessComponent>(TEXT("PostProcessComp"));
+	PostProcessComp->SetupAttachment(RootComponent);
+	PostProcessComp->bUnbound = true;
+	PostProcessComp->BlendWeight = 0.0f;
+
+	// Setup visual effect for outside the zone (blur/tint)
+	PostProcessComp->Settings.bOverride_VignetteIntensity = true;
+	PostProcessComp->Settings.VignetteIntensity = 1.0f;
+	PostProcessComp->Settings.bOverride_SceneFringeIntensity = true;
+	PostProcessComp->Settings.SceneFringeIntensity = 2.5f; // Chromatic aberration
+	PostProcessComp->Settings.bOverride_ColorGain = true;
+	PostProcessComp->Settings.ColorGain = FVector4(1.5f, 0.6f, 0.6f, 1.0f); // Slight reddish tint
 }
 
 // Called when the game starts or when spawned
@@ -51,6 +65,26 @@ void AOpYBMagneticField::Tick(float DeltaTime)
 	// Assuming the default sphere has a diameter of 100 units
 	float ScaleFactor = CurrentRadius / 50.0f;
 	SetActorScale3D(FVector(ScaleFactor, ScaleFactor, ScaleFactor));
+
+	// Client-side visual effect updating
+	if (APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0))
+	{
+		if (AOpYBCharacter* LocalChar = Cast<AOpYBCharacter>(PC->GetPawn()))
+		{
+			if (LocalChar->IsLocallyControlled())
+			{
+				float Distance = FVector::Dist2D(GetActorLocation(), LocalChar->GetActorLocation());
+				if (Distance > CurrentRadius)
+				{
+					PostProcessComp->BlendWeight = FMath::FInterpTo(PostProcessComp->BlendWeight, 1.0f, DeltaTime, 5.0f);
+				}
+				else
+				{
+					PostProcessComp->BlendWeight = FMath::FInterpTo(PostProcessComp->BlendWeight, 0.0f, DeltaTime, 5.0f);
+				}
+			}
+		}
+	}
 }
 
 void AOpYBMagneticField::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

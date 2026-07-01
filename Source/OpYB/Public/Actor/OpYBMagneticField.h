@@ -5,6 +5,7 @@
 #include "OpYBMagneticField.generated.h"
 
 class USphereComponent;
+class UPostProcessComponent;
 
 UCLASS()
 class OPYB_API AOpYBMagneticField : public AActor
@@ -26,6 +27,10 @@ public:
 	// Visual representation of the magnetic field
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UStaticMeshComponent> MeshComp;
+
+	// Post process component for visual indication outside the field
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UPostProcessComponent> PostProcessComp;
 
 	// Current radius of the safe zone
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "Magnetic Field")

@@ -63,6 +63,15 @@ public:
 	/** Play the roll montage */
 	void PlayRollMontage();
 
+protected:
+	/** 카메라에 가려져 숨김 처리된 액터들의 목록 */
+	TSet<const AActor*> HiddenActors;
+
+	/** 매 프레임 카메라 레이캐스트를 쏴서 장애물을 투명화/복구하는 함수 */
+	void CheckCameraOcclusion();
+
+public:
+
 	/** Returns true if character is currently rolling */
 	UFUNCTION(BlueprintCallable, Category = "Animation")
 	bool IsRolling() const;

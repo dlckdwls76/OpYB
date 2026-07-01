@@ -140,6 +140,12 @@ void AOpYBCharacter::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
 
+	// 매 프레임 카메라가 가려졌는지 검사 (오로지 로컬 플레이어 화면에서만 의미가 있으므로 IsLocallyControlled 확인)
+	if (IsLocallyControlled())
+	{
+		CheckCameraOcclusion();
+	}
+
 	if (bIsDead)
 	{
 		// 죽은 상태일 때 데스 스크린 UI의 남은 시간 갱신
@@ -619,4 +625,62 @@ void AOpYBCharacter::ServerFireUltimate_Implementation(FVector TargetLocation)
 			UE_LOG(LogTemp, Warning, TEXT("[Server] 궁극기 발사!"));
 		}
 	}
+}
+
+void AOpYBCharacter::CheckCameraOcclusion()
+{
+	if (!TopDownCameraComponent) return;
+
+	FVector CameraLocation = TopDownCameraComponent->GetComponentLocation();
+	FVector CharacterLocation = GetActorLocation();
+
+	// 레이캐스트 설정: 플레이어 자신은 충돌에서 제외
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+
+	TArray<FHitResult> HitResults;
+	// ECC_Camera 채널을 기준으로 카메라에서 캐릭터까지 레이저를 쏩니다.
+	GetWorld()->LineTraceMultiByChannel(
+		HitResults,
+		CameraLocation,
+		CharacterLocation,
+		ECC_Camera,
+		QueryParams
+	);
+
+	// 이번 프레임에서 새롭게 가려진 액터들을 담을 임시 세트
+	TSet<const AActor*> CurrentlyHitActors;
+
+	for (const FHitResult& Hit : HitResults)
+	{
+		AActor* HitActor = Hit.GetActor();
+		// 유효한 액터인지 검사 (자기 자신 제외)
+		if (HitActor && HitActor != this)
+		{
+			CurrentlyHitActors.Add(HitActor);
+		}
+	}
+
+	// 1. 이전에 가려졌지만 이번엔 안 맞은 액터들 -> 다시 보이게 복구
+	for (const AActor* Actor : HiddenActors)
+	{
+		if (Actor && !CurrentlyHitActors.Contains(Actor))
+		{
+			AActor* MutableActor = const_cast<AActor*>(Actor);
+			MutableActor->SetActorHiddenInGame(false);
+		}
+	}
+
+	// 2. 새롭게 맞은(가린) 액터들 -> 숨김 처리 (투명화)
+	for (const AActor* Actor : CurrentlyHitActors)
+	{
+		if (Actor && !HiddenActors.Contains(Actor))
+		{
+			AActor* MutableActor = const_cast<AActor*>(Actor);
+			MutableActor->SetActorHiddenInGame(true);
+		}
+	}
+
+	// 3. 현재 가려진 목록으로 최신화
+	HiddenActors = CurrentlyHitActors;
 }
