@@ -17,4 +17,4 @@ Saved/
 *.patch
 *_BuiltData.uasset
 Build/Windows/
-
+*.zip
