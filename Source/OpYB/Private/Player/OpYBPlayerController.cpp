@@ -13,6 +13,7 @@
 #include "Engine/LocalPlayer.h"
 #include "UI/OpYBHUD.h"
 #include "OpYB.h"
+#include "Component/OpYBCombatComponent.h"
 
 AOpYBPlayerController::AOpYBPlayerController()
 {
@@ -124,7 +125,18 @@ void AOpYBPlayerController::Tick(float DeltaTime)
 				// 멀티플레이어 동기화를 위해 서버로 회전값 전송 (로컬 플레이어일 때만)
 				if (IsLocalPlayerController() && HasAuthority() == false)
 				{
-					ServerSetPawnRotation(NewRotation);
+					TimeSinceLastRotationSync += DeltaTime;
+					
+					// 초당 최대 20회(0.05초 간격)로 제한하고, 회전값이 1도 이상 변했을 때만 전송
+					if (TimeSinceLastRotationSync >= 0.05f)
+					{
+						if (!LastSentRotation.Equals(NewRotation, 1.0f))
+						{
+							ServerSetPawnRotation(NewRotation);
+							LastSentRotation = NewRotation;
+						}
+						TimeSinceLastRotationSync = 0.0f;
+					}
 				}
 			}
 		}
@@ -160,8 +172,10 @@ void AOpYBPlayerController::Shoot()
 	UE_LOG(LogTemp, Warning, TEXT("1. [PlayerController] 마우스 클릭 감지됨!"));
 	if (AOpYBCharacter* ControlledCharacter = Cast<AOpYBCharacter>(GetPawn()))
 	{
-		//		if (ControlledCharacter->IsRolling()) return; // 구르기 중 사격 불가
-		ControlledCharacter->AttemptShoot(bIsUltReadyMode);
+		if (ControlledCharacter->GetCombatComponent())
+		{
+			ControlledCharacter->GetCombatComponent()->AttemptShoot(bIsUltReadyMode);
+		}
 
 		// 궁극기 모드에서 쐈다면 즉시 모드 해제 및 에임 복구
 		if (bIsUltReadyMode)

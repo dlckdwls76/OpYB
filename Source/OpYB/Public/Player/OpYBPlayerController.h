@@ -88,4 +88,9 @@ protected:
 	UFUNCTION(Server, Unreliable, WithValidation)
 	void ServerSetPawnRotation(FRotator NewRotation);
 	
+	/** 최근에 전송한 회전값 캐싱 (네트워크 대역폭 최적화용) */
+	FRotator LastSentRotation = FRotator::ZeroRotator;
+
+	/** 마지막으로 회전값을 전송한 이후 흐른 시간 */
+	float TimeSinceLastRotationSync = 0.0f;
 };

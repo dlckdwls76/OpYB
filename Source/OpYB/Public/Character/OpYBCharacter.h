@@ -12,6 +12,8 @@ class UAnimMontage;
 class AOpYBProjectile;
 class UWidgetComponent;
 class UOpYBDeathScreenWidget;
+class UOpYBHealthComponent;
+class UOpYBCombatComponent;
 
 /**
  *  A controllable top-down perspective character
@@ -35,6 +37,14 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "UI", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UWidgetComponent> OverheadUIComponent;
 
+	/** Health Component */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UOpYBHealthComponent> HealthComponent;
+
+	/** Combat Component */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UOpYBCombatComponent> CombatComponent;
+
 public:
 
 	/** Constructor */
@@ -56,6 +66,12 @@ public:
 	/** Returns the Camera Boom component **/
 	USpringArmComponent* GetCameraBoom() const { return CameraBoom.Get(); }
 
+	/** Returns Health Component */
+	UOpYBHealthComponent* GetHealthComponent() const { return HealthComponent.Get(); }
+
+	/** Returns Combat Component */
+	UOpYBCombatComponent* GetCombatComponent() const { return CombatComponent.Get(); }
+
 	/** 구르기 몽타주 (Spacebar) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Animation")
 	TObjectPtr<UAnimMontage> RollMontage;
@@ -67,6 +83,9 @@ protected:
 	/** 카메라에 가려져 숨김 처리된 액터들의 목록 */
 	TSet<const AActor*> HiddenActors;
 
+	/** 카메라 가림 검사(Occlusion) 타이머 핸들 */
+	FTimerHandle CameraOcclusionTimerHandle;
+
 	/** 매 프레임 카메라 레이캐스트를 쏴서 장애물을 투명화/복구하는 함수 */
 	void CheckCameraOcclusion();
 
@@ -76,57 +95,27 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Animation")
 	bool IsRolling() const;
 
-	/** Projectile class to spawn */
-	UPROPERTY(EditDefaultsOnly, Category = "Projectile")
-	TSubclassOf<AOpYBProjectile> ProjectileClass;
-
-	/** 연사 속도 (초 단위). 기본값 0.1초 (1초에 10발) */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Combat|Shooting")
-	float FireRate;
-
-	/** 마지막으로 발사한 시간 기록용 */
-	float LastFireTime;
+	// ==========================================
+	// UI Delegate Handlers (Health & Death)
+	// ==========================================
 	
-	/** 사격 시도 (로컬) */
-	UFUNCTION(BlueprintCallable, Category = "Combat")
-	void AttemptShoot(bool bIsUltimate);
-
-	/** 실제 총알 생성 (서버) */
-	UFUNCTION(Server, Reliable, WithValidation)
-	void ServerShoot(FVector SpawnLocation, FRotator SpawnRotation, bool bIsUltimate);
-
-	/** Maximum Health */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats")
-	float MaxHealth = 100.0f;
-
-	/** Current Health */
-	UPROPERTY(ReplicatedUsing = OnRep_CurrentHealth, BlueprintReadOnly, Category = "Stats")
-	float CurrentHealth;
+	UFUNCTION()
+	void UpdateHealthUI(float InCurrentHealth, float InMaxHealth);
 
 	UFUNCTION()
-	void OnRep_CurrentHealth();
-
-	/** Maximum Ammo */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats")
-	int32 MaxAmmo = 3;
-
-	/** Current Ammo */
-	UPROPERTY(ReplicatedUsing = OnRep_CurrentAmmo, BlueprintReadOnly, Category = "Stats")
-	int32 CurrentAmmo;
-
-	/** 현재 장탄수 변경 시 호출 */
-	UFUNCTION()
-	void OnRep_CurrentAmmo();
-
-	/** 사망 여부 */
-	UPROPERTY(ReplicatedUsing = OnRep_IsDead, BlueprintReadOnly, Category = "Stats")
-	bool bIsDead;
+	void UpdateAmmoUI(int32 InCurrentAmmo, int32 InMaxAmmo, float InReloadProgress);
 
 	UFUNCTION()
-	void OnRep_IsDead();
+	void HandleDeath();
 
-	/** 남은 부활 시간 (클라이언트 UI 표시용) */
-	float RespawnTimeLeft;
+	UFUNCTION()
+	void HandleRespawn();
+
+	UFUNCTION()
+	void UpdateDeathScreenTime(float TimeLeft);
+	
+	// 편의상 bIsDead 상태 플래그 (다른 컴포넌트 접근용)
+	bool bIsDead = false;
 
 	/** 궁극기 게이지 (0~3) */
 	UPROPERTY(ReplicatedUsing = OnRep_CurrentUltCharge, VisibleAnywhere, BlueprintReadOnly, Category = "Ultimate")
@@ -147,33 +136,8 @@ public:
 	/** 사망 시 게이지 초기화 */
 	void ResetUltCharge();
 
-	/** 부활 타이머 (서버용) */
-	FTimerHandle RespawnTimerHandle;
-
-	/** 사망 처리 (서버 전용) */
-	void Die();
-
-	/** 부활 처리 (서버 전용) */
-	void Respawn();
-
 	/** Take Damage Function */
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
-
-	/** 한 발 충전에 걸리는 시간 (초 단위) */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Stats")
-	float ReloadTimePerAmmo = 1.0f;
-
-	/** 로컬 장전 시각화용 진행도 (0.0 ~ 1.0) */
-	float LocalReloadProgress = 0.0f;
-
-	/** 이전 탄약 개수 기억용 (장전 완료 감지) */
-	int32 LastAmmoCount = 3;
-
-	/** 탄약 충전용 타이머 핸들 (서버용) */
-	FTimerHandle RechargeTimerHandle;
-
-	/** 한 발 충전 완료 시 호출될 함수 (서버용) */
-	void RechargeAmmo();
 
 	// ==========================================
 	// 궁극기 관련 기능
